@@ -18,67 +18,62 @@ export async function POST(request: Request) {
       );
     }
 
-    /*
-     * ---------------------------------------------------------
-     * 1. BUILD CONTEXT FROM NEO4J
-     * ---------------------------------------------------------
-     */
+    const context =
+      await buildAIContext(question);
 
-    const context = await buildAIContext(question);
+    const configuredProvider =
+      DEFAULT_AI_PROVIDER;
 
-    /*
-     * ---------------------------------------------------------
-     * 2. SELECT CONFIGURED AI PROVIDER
-     * ---------------------------------------------------------
-     *
-     * The current environment uses:
-     *
-     * AI_PROVIDER=rule-based
-     *
-     * OpenAI and Anthropic remain disabled.
-     * ---------------------------------------------------------
-     */
+    const provider =
+      getAIProvider(configuredProvider);
 
-    const configuredProvider = DEFAULT_AI_PROVIDER;
-
-    const provider = getAIProvider(configuredProvider);
-
-    /*
-     * ---------------------------------------------------------
-     * 3. GENERATE RESPONSE
-     * ---------------------------------------------------------
-     */
-
-    const aiResponse = await provider.generateResponse({
-      question,
-      context: JSON.stringify(context, null, 2),
-    });
-
-    /*
-     * ---------------------------------------------------------
-     * 4. RETURN RESPONSE
-     * ---------------------------------------------------------
-     */
+    const aiResponse =
+      await provider.generateResponse({
+        question,
+        context,
+      });
 
     return NextResponse.json({
       success: true,
       question,
-      responseType: context.responseType,
-      answer: aiResponse.answer,
-      provider: aiResponse.provider,
+
+      responseType:
+        context.responseType,
+
+      answer:
+        aiResponse.answer,
+
+      provider:
+        aiResponse.provider,
+
       configuredProvider,
-      graphData: context.graphData,
-      documentData: context.documentData,
-      sources: context.sources,
-      source: context.source,
+
+      graphData:
+        context.graph.records,
+
+      documentData:
+        context.documents.records,
+
+      sources:
+        context.sources,
+
+      source:
+        context.graph.source,
+
+      metadata:
+        context.metadata,
     });
   } catch (error) {
-    console.error("AI Agent error:", error);
+    console.error(
+      "AI Agent error:",
+      error
+    );
 
     return NextResponse.json(
       {
         success: false,
-        message: "The AI Agent could not query the knowledge graph.",
+        message:
+          "The AI Agent could not query the knowledge graph.",
       },
       { status: 500 }
     );

@@ -8,36 +8,39 @@ export type AIContextSource = {
   description?: string;
 };
 
+export type AIContextDocument = {
+  id: string;
+  title: string;
+  content: string;
+  source: string;
+  score?: number;
+};
+
 export type AIContextResult = {
   question: string;
   responseType: string;
 
-  /*
-   * Live operational knowledge retrieved from Neo4j.
-   */
-  graphData: Record<string, unknown>[];
+  graph: {
+    records: Record<string, unknown>[];
+    source: string;
+  };
 
-  /*
-   * Relevant document information retrieved by the
-   * document retrieval layer.
-   */
-  documentData: Record<string, unknown>[];
+  documents: {
+    records: AIContextDocument[];
+    source: string;
+  };
 
-  /*
-   * Sources used to build the context.
-   */
   sources: AIContextSource[];
 
-  source: "Neo4j Aura";
+  metadata: {
+    graphRecordCount: number;
+    documentCount: number;
+  };
 };
 
-/*
- * ---------------------------------------------------------
- * NORMALIZE NEO4J VALUES
- * ---------------------------------------------------------
- */
-
-function normalizeNeo4jValue(value: unknown): unknown {
+function normalizeNeo4jValue(
+  value: unknown
+): unknown {
   if (neo4j.isInt(value)) {
     return value.toNumber();
   }
@@ -46,13 +49,17 @@ function normalizeNeo4jValue(value: unknown): unknown {
     return value.map(normalizeNeo4jValue);
   }
 
-  if (value !== null && typeof value === "object") {
+  if (
+    value !== null &&
+    typeof value === "object"
+  ) {
     const normalized: Record<string, unknown> = {};
 
     for (const [key, nestedValue] of Object.entries(
       value as Record<string, unknown>
     )) {
-      normalized[key] = normalizeNeo4jValue(nestedValue);
+      normalized[key] =
+        normalizeNeo4jValue(nestedValue);
     }
 
     return normalized;
@@ -61,44 +68,14 @@ function normalizeNeo4jValue(value: unknown): unknown {
   return value;
 }
 
-/*
- * ---------------------------------------------------------
- * BUILD AI CONTEXT
- * ---------------------------------------------------------
- *
- * Current architecture:
- *
- * Question
- *    ↓
- * ┌─────────────────────────────┐
- * │ Context Builder             │
- * ├─────────────────────────────┤
- * │ Neo4j Graph Retrieval       │
- * │ Document Retrieval          │
- * └──────────────┬──────────────┘
- *                ↓
- *         Unified AI Context
- *                ↓
- *            AI Provider
- *
- * The document retrieval layer currently returns no
- * documents. It is ready for future RAG implementation.
- * ---------------------------------------------------------
- */
-
 export async function buildAIContext(
   question: string
 ): Promise<AIContextResult> {
-  const normalizedQuestion = question.toLowerCase();
+  const normalizedQuestion =
+    question.toLowerCase();
 
   let query = "";
   let responseType = "overview";
-
-  /*
-   * ---------------------------------------------------------
-   * 1. DEPENDENCY QUESTIONS
-   * ---------------------------------------------------------
-   */
 
   if (
     normalizedQuestion.includes("dependenc") ||
@@ -117,15 +94,7 @@ export async function buildAIContext(
         d.name AS department
       ORDER BY p1.name
     `;
-  }
-
-  /*
-   * ---------------------------------------------------------
-   * 2. AUTOMATION QUESTIONS
-   * ---------------------------------------------------------
-   */
-
-  else if (
+  } else if (
     normalizedQuestion.includes("automation") ||
     normalizedQuestion.includes("automations")
   ) {
@@ -145,15 +114,7 @@ export async function buildAIContext(
         collect(DISTINCT t.name) AS technologies
       ORDER BY a.confidence DESC
     `;
-  }
-
-  /*
-   * ---------------------------------------------------------
-   * 3. TECHNOLOGY QUESTIONS
-   * ---------------------------------------------------------
-   */
-
-  else if (
+  } else if (
     normalizedQuestion.includes("technology") ||
     normalizedQuestion.includes("technologies") ||
     normalizedQuestion.includes("tech")
@@ -169,15 +130,7 @@ export async function buildAIContext(
         collect(DISTINCT p.name) AS processes
       ORDER BY t.name
     `;
-  }
-
-  /*
-   * ---------------------------------------------------------
-   * 4. SYSTEM QUESTIONS
-   * ---------------------------------------------------------
-   */
-
-  else if (
+  } else if (
     normalizedQuestion.includes("system") ||
     normalizedQuestion.includes("systems")
   ) {
@@ -192,15 +145,7 @@ export async function buildAIContext(
         collect(DISTINCT p.name) AS processes
       ORDER BY s.name
     `;
-  }
-
-  /*
-   * ---------------------------------------------------------
-   * 5. DEPARTMENT QUESTIONS
-   * ---------------------------------------------------------
-   */
-
-  else if (
+  } else if (
     normalizedQuestion.includes("department") ||
     normalizedQuestion.includes("departments")
   ) {
@@ -216,15 +161,7 @@ export async function buildAIContext(
         collect(DISTINCT a.name) AS automations
       ORDER BY d.name
     `;
-  }
-
-  /*
-   * ---------------------------------------------------------
-   * 6. PROCESS QUESTIONS
-   * ---------------------------------------------------------
-   */
-
-  else if (
+  } else if (
     normalizedQuestion.includes("process") ||
     normalizedQuestion.includes("processes")
   ) {
@@ -241,15 +178,7 @@ export async function buildAIContext(
         a.name AS automation
       ORDER BY p.name
     `;
-  }
-
-  /*
-   * ---------------------------------------------------------
-   * 7. GENERAL GRAPH OVERVIEW
-   * ---------------------------------------------------------
-   */
-
-  else {
+  } else {
     responseType = "overview";
 
     query = `
@@ -262,51 +191,22 @@ export async function buildAIContext(
     `;
   }
 
-  /*
-   * ---------------------------------------------------------
-   * QUERY NEO4J
-   * ---------------------------------------------------------
-   */
+  const result =
+    await driver.executeQuery(query);
 
-  const result = await driver.executeQuery(query);
+  const graphRecords =
+    result.records.map((record) => {
+      const rawData = record.toObject();
 
-  /*
-   * ---------------------------------------------------------
-   * NORMALIZE NEO4J DATA
-   * ---------------------------------------------------------
-   */
-
-  const graphData = result.records.map((record) => {
-    const rawData = record.toObject();
-
-    return normalizeNeo4jValue(
-      rawData
-    ) as Record<string, unknown>;
-  });
-
-  /*
-   * ---------------------------------------------------------
-   * DOCUMENT RETRIEVAL
-   * ---------------------------------------------------------
-   *
-   * Currently returns an empty document collection.
-   *
-   * Later this function can perform:
-   *
-   * Question
-   *   ↓
-   * Embedding / keyword search
-   *   ↓
-   * Relevant document chunks
-   *   ↓
-   * documentData
-   * ---------------------------------------------------------
-   */
+      return normalizeNeo4jValue(
+        rawData
+      ) as Record<string, unknown>;
+    });
 
   const retrievalResult =
     await retrieveDocuments(question);
 
-  const documentData =
+  const documentRecords =
     retrievalResult.documents.map(
       (document) => ({
         id: document.id,
@@ -317,12 +217,6 @@ export async function buildAIContext(
       })
     );
 
-  /*
-   * ---------------------------------------------------------
-   * CONTEXT SOURCES
-   * ---------------------------------------------------------
-   */
-
   const sources: AIContextSource[] = [
     {
       type: "graph",
@@ -332,27 +226,34 @@ export async function buildAIContext(
     },
   ];
 
-  if (documentData.length > 0) {
+  if (documentRecords.length > 0) {
     sources.push({
       type: "document",
       name: "Document Retrieval",
       description:
-        "Relevant documents retrieved for the user's question.",
+        "Relevant synthetic operational documents retrieved using keyword relevance scoring.",
     });
   }
-
-  /*
-   * ---------------------------------------------------------
-   * RETURN UNIFIED AI CONTEXT
-   * ---------------------------------------------------------
-   */
 
   return {
     question,
     responseType,
-    graphData,
-    documentData,
+
+    graph: {
+      records: graphRecords,
+      source: "Neo4j Aura",
+    },
+
+    documents: {
+      records: documentRecords,
+      source: "Neo4j Aura",
+    },
+
     sources,
-    source: "Neo4j Aura",
+
+    metadata: {
+      graphRecordCount: graphRecords.length,
+      documentCount: documentRecords.length,
+    },
   };
 }

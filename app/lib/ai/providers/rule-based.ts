@@ -4,80 +4,30 @@ import type {
   AIResponse,
 } from "./types";
 
-type GraphContext = {
-  question?: string;
-  responseType?: string;
-  graphData?: Record<string, unknown>[];
-  documentData?: Record<string, unknown>[];
-  sources?: {
-    type: "graph" | "document";
-    name: string;
-    description?: string;
-  }[];
-  source?: string;
-};
-
-export class RuleBasedProvider implements AIProvider {
+export class RuleBasedProvider
+  implements AIProvider
+{
   name = "rule-based" as const;
 
   async generateResponse(
     request: AIRequest
   ): Promise<AIResponse> {
-    const question = request.question.toLowerCase();
+    const question =
+      request.question.toLowerCase();
 
-    let context: GraphContext = {};
+    const context = request.context;
 
-    /*
-     * ---------------------------------------------------------
-     * PARSE RETRIEVED AI CONTEXT
-     * ---------------------------------------------------------
-     */
+    const graphData =
+      context.graph.records;
 
-    if (request.context) {
-      try {
-        context = JSON.parse(request.context) as GraphContext;
-      } catch {
-        context = {};
-      }
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * GRAPH + DOCUMENT CONTEXT
-     * ---------------------------------------------------------
-     *
-     * graphData contains the live Neo4j results.
-     *
-     * documentData is reserved for future RAG retrieval.
-     * It is currently empty.
-     * ---------------------------------------------------------
-     */
-
-    const graphData = Array.isArray(context.graphData)
-      ? context.graphData
-      : [];
-
-    const documentData = Array.isArray(context.documentData)
-      ? context.documentData
-      : [];
+    const documentData =
+      context.documents.records;
 
     const responseType =
-      context.responseType ?? "overview";
-
-    /*
-     * ---------------------------------------------------------
-     * DEFAULT RESPONSE
-     * ---------------------------------------------------------
-     */
+      context.responseType;
 
     let answer =
       "I analyzed the available operational knowledge graph data.";
-
-    /*
-     * ---------------------------------------------------------
-     * PROCESS QUESTIONS
-     * ---------------------------------------------------------
-     */
 
     if (responseType === "processes") {
       const processNames = graphData
@@ -95,15 +45,9 @@ export class RuleBasedProvider implements AIProvider {
         answer =
           "No process records were found in the knowledge graph.";
       }
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * AUTOMATION QUESTIONS
-     * ---------------------------------------------------------
-     */
-
-    else if (responseType === "automations") {
+    } else if (
+      responseType === "automations"
+    ) {
       const automationNames = graphData
         .map((item) => item.automation)
         .filter(
@@ -123,9 +67,11 @@ export class RuleBasedProvider implements AIProvider {
           confidenceValues.length > 0
             ? Math.round(
                 confidenceValues.reduce(
-                  (total, value) => total + value,
+                  (total, value) =>
+                    total + value,
                   0
-                ) / confidenceValues.length
+                ) /
+                  confidenceValues.length
               )
             : null;
 
@@ -141,15 +87,9 @@ export class RuleBasedProvider implements AIProvider {
         answer =
           "No automation records were found in the knowledge graph.";
       }
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * DEPENDENCY QUESTIONS
-     * ---------------------------------------------------------
-     */
-
-    else if (responseType === "dependencies") {
+    } else if (
+      responseType === "dependencies"
+    ) {
       const dependencies = graphData
         .map((item) => {
           const process = item.process;
@@ -178,15 +118,9 @@ export class RuleBasedProvider implements AIProvider {
         answer =
           "No process dependency relationships were found.";
       }
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * TECHNOLOGY QUESTIONS
-     * ---------------------------------------------------------
-     */
-
-    else if (responseType === "technologies") {
+    } else if (
+      responseType === "technologies"
+    ) {
       const technologies = graphData
         .map((item) => item.technology)
         .filter(
@@ -206,15 +140,9 @@ export class RuleBasedProvider implements AIProvider {
         answer =
           "No technology relationships were found.";
       }
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * SYSTEM QUESTIONS
-     * ---------------------------------------------------------
-     */
-
-    else if (responseType === "systems") {
+    } else if (
+      responseType === "systems"
+    ) {
       const systems = graphData
         .map((item) => item.system)
         .filter(
@@ -222,7 +150,9 @@ export class RuleBasedProvider implements AIProvider {
             typeof value === "string"
         );
 
-      const uniqueSystems = [...new Set(systems)];
+      const uniqueSystems = [
+        ...new Set(systems),
+      ];
 
       if (uniqueSystems.length > 0) {
         answer =
@@ -232,15 +162,9 @@ export class RuleBasedProvider implements AIProvider {
         answer =
           "No system relationships were found.";
       }
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * DEPARTMENT QUESTIONS
-     * ---------------------------------------------------------
-     */
-
-    else if (responseType === "departments") {
+    } else if (
+      responseType === "departments"
+    ) {
       const departments = graphData
         .map((item) => item.department)
         .filter(
@@ -260,44 +184,58 @@ export class RuleBasedProvider implements AIProvider {
         answer =
           "No department records were found.";
       }
-    }
+    } else if (
+      responseType === "overview"
+    ) {
+      if (documentData.length > 0) {
+        const topDocument =
+          documentData[0];
 
-    /*
-     * ---------------------------------------------------------
-     * GENERAL / OVERVIEW QUESTIONS
-     * ---------------------------------------------------------
-     */
+        const title =
+          typeof topDocument.title ===
+          "string"
+            ? topDocument.title
+            : "Retrieved document";
 
-    else if (responseType === "overview") {
-      const totalNodes = graphData.reduce(
-        (total, item) => {
-          const count = item.count;
+        const content =
+          typeof topDocument.content ===
+          "string"
+            ? topDocument.content
+            : "";
 
-          return (
-            total +
-            (typeof count === "number" ? count : 0)
-          );
-        },
-        0
-      );
-
-      if (totalNodes > 0) {
-        answer =
-          `I queried the live Neo4j knowledge graph. ` +
-          `The retrieved graph summary contains ${totalNodes} nodes across the available entity types.`;
+        if (content) {
+          answer =
+            `Based on the retrieved document "${title}", ${content}`;
+        } else {
+          answer =
+            `I found the relevant document "${title}", but it does not contain readable content.`;
+        }
       } else {
-        answer =
-          "I queried the live Neo4j knowledge graph, but no graph summary data was returned.";
+        const totalNodes =
+          graphData.reduce(
+            (total, item) => {
+              const count = item.count;
+
+              return (
+                total +
+                (typeof count === "number"
+                  ? count
+                  : 0)
+              );
+            },
+            0
+          );
+
+        if (totalNodes > 0) {
+          answer =
+            `I queried the live Neo4j knowledge graph. ` +
+            `The retrieved graph summary contains ${totalNodes} nodes across the available entity types.`;
+        } else {
+          answer =
+            "I queried the live Neo4j knowledge graph, but no graph summary data was returned.";
+        }
       }
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * SPECIAL KEYWORD FALLBACKS
-     * ---------------------------------------------------------
-     */
-
-    else if (
+    } else if (
       question.includes("neo4j") ||
       question.includes("knowledge graph")
     ) {
@@ -305,20 +243,16 @@ export class RuleBasedProvider implements AIProvider {
         "The AI Operations Lab platform uses Neo4j Aura as the live operational knowledge graph.";
     }
 
-    /*
-     * ---------------------------------------------------------
-     * FUTURE DOCUMENT CONTEXT
-     * ---------------------------------------------------------
-     *
-     * This does not affect the current rule-based answers.
-     * It simply confirms that the provider can receive
-     * document context once RAG is implemented.
-     * ---------------------------------------------------------
-     */
-
-    if (documentData.length > 0) {
+    if (
+      documentData.length > 0 &&
+      responseType !== "overview"
+    ) {
       answer +=
-        ` Additional document context was retrieved from ${documentData.length} document records.`;
+        ` Additional document context was retrieved from ${documentData.length} document record${
+          documentData.length === 1
+            ? ""
+            : "s"
+        }.`;
     }
 
     return {

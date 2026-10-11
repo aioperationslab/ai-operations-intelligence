@@ -1,8 +1,15 @@
-export type AIProviderName = "rule-based" | "openai" | "anthropic";
+import type {
+  AIContextResult,
+} from "../context";
+
+export type AIProviderName =
+  | "rule-based"
+  | "openai"
+  | "anthropic";
 
 export type AIRequest = {
   question: string;
-  context?: string;
+  context: AIContextResult;
 };
 
 export type AIResponse = {
@@ -13,5 +20,7 @@ export type AIResponse = {
 export interface AIProvider {
   name: AIProviderName;
 
-  generateResponse(request: AIRequest): Promise<AIResponse>;
+  generateResponse(
+    request: AIRequest
+  ): Promise<AIResponse>;
 }
