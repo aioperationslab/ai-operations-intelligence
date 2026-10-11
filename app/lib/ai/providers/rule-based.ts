@@ -4,6 +4,13 @@ import type {
   AIResponse,
 } from "./types";
 
+type GraphContext = {
+  question?: string;
+  responseType?: string;
+  data?: Record<string, unknown>[];
+  source?: string;
+};
+
 export class RuleBasedProvider implements AIProvider {
   name = "rule-based" as const;
 
@@ -12,56 +19,264 @@ export class RuleBasedProvider implements AIProvider {
   ): Promise<AIResponse> {
     const question = request.question.toLowerCase();
 
-    let answer =
-      "I can analyze the operational knowledge graph using the available process, automation, system, technology and dependency data.";
+    let context: GraphContext = {};
 
-    if (
-      question.includes("process") ||
-      question.includes("processes")
-    ) {
-      answer =
-        "The knowledge graph contains 8 synthetic operational processes connected to departments, automations, systems and dependencies.";
-    } else if (
-      question.includes("automation") ||
-      question.includes("automations")
-    ) {
-      answer =
-        "The knowledge graph contains 8 synthetic automations. They are connected to the operational processes they support and use a combination of AI, LLM, RPA and AI Agent technologies.";
-    } else if (
-      question.includes("system") ||
-      question.includes("systems")
-    ) {
-      answer =
-        "The knowledge graph contains 7 synthetic enterprise systems connected to the automations that use them.";
-    } else if (
-      question.includes("technology") ||
-      question.includes("technologies")
-    ) {
-      answer =
-        "The knowledge graph contains 5 technology entities, including LLM, RAG, RPA, AI Agent and Neo4j.";
-    } else if (
-      question.includes("dependency") ||
-      question.includes("dependencies")
-    ) {
-      answer =
-        "The knowledge graph contains process dependencies that can be used to identify operational impact and prioritize automation opportunities.";
-    } else if (
-      question.includes("opportunity") ||
-      question.includes("opportunities")
-    ) {
-      answer =
-        "Automation opportunities are evaluated using automation confidence, maturity, dependencies and system complexity.";
-    } else if (
-      question.includes("confidence")
-    ) {
-      answer =
-        "Automation confidence represents the confidence associated with each synthetic automation. The current graph has an average automation confidence of 88%.";
-    } else if (
+    /*
+     * ---------------------------------------------------------
+     * PARSE RETRIEVED GRAPH CONTEXT
+     * ---------------------------------------------------------
+     */
+
+    if (request.context) {
+      try {
+        context = JSON.parse(request.context) as GraphContext;
+      } catch {
+        context = {};
+      }
+    }
+
+    const data = Array.isArray(context.data)
+      ? context.data
+      : [];
+
+    const responseType = context.responseType ?? "overview";
+
+    /*
+     * ---------------------------------------------------------
+     * DEFAULT RESPONSE
+     * ---------------------------------------------------------
+     */
+
+    let answer =
+      "I analyzed the available operational knowledge graph data.";
+
+    /*
+     * ---------------------------------------------------------
+     * PROCESS QUESTIONS
+     * ---------------------------------------------------------
+     */
+
+    if (responseType === "processes") {
+      const processNames = data
+        .map((item) => item.process)
+        .filter(
+          (value): value is string =>
+            typeof value === "string"
+        );
+
+      if (processNames.length > 0) {
+        answer =
+          `The knowledge graph contains ${processNames.length} processes: ` +
+          `${processNames.join(", ")}.`;
+      } else {
+        answer =
+          "No process records were found in the knowledge graph.";
+      }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * AUTOMATION QUESTIONS
+     * ---------------------------------------------------------
+     */
+
+    else if (responseType === "automations") {
+      const automationNames = data
+        .map((item) => item.automation)
+        .filter(
+          (value): value is string =>
+            typeof value === "string"
+        );
+
+      const confidenceValues = data
+        .map((item) => item.confidence)
+        .filter(
+          (value): value is number =>
+            typeof value === "number"
+        );
+
+      if (automationNames.length > 0) {
+        const averageConfidence =
+          confidenceValues.length > 0
+            ? Math.round(
+                confidenceValues.reduce(
+                  (total, value) => total + value,
+                  0
+                ) / confidenceValues.length
+              )
+            : null;
+
+        answer =
+          `The knowledge graph contains ${automationNames.length} automations: ` +
+          `${automationNames.join(", ")}.`;
+
+        if (averageConfidence !== null) {
+          answer +=
+            ` The average automation confidence in the retrieved data is ${averageConfidence}%.`;
+        }
+      } else {
+        answer =
+          "No automation records were found in the knowledge graph.";
+      }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * DEPENDENCY QUESTIONS
+     * ---------------------------------------------------------
+     */
+
+    else if (responseType === "dependencies") {
+      const dependencies = data
+        .map((item) => {
+          const process = item.process;
+          const dependsOn = item.dependsOn;
+
+          if (
+            typeof process !== "string" ||
+            typeof dependsOn !== "string"
+          ) {
+            return null;
+          }
+
+          return `${process} depends on ${dependsOn}`;
+        })
+        .filter(
+          (value): value is string =>
+            typeof value === "string"
+        );
+
+      if (dependencies.length > 0) {
+        answer =
+          `The graph contains ${dependencies.length} process dependencies. ` +
+          dependencies.join(". ") +
+          ".";
+      } else {
+        answer =
+          "No process dependency relationships were found.";
+      }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * TECHNOLOGY QUESTIONS
+     * ---------------------------------------------------------
+     */
+
+    else if (responseType === "technologies") {
+      const technologies = data
+        .map((item) => item.technology)
+        .filter(
+          (value): value is string =>
+            typeof value === "string"
+        );
+
+      const uniqueTechnologies = [
+        ...new Set(technologies),
+      ];
+
+      if (uniqueTechnologies.length > 0) {
+        answer =
+          `The knowledge graph contains ${uniqueTechnologies.length} technologies connected to the retrieved automation data: ` +
+          `${uniqueTechnologies.join(", ")}.`;
+      } else {
+        answer =
+          "No technology relationships were found.";
+      }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * SYSTEM QUESTIONS
+     * ---------------------------------------------------------
+     */
+
+    else if (responseType === "systems") {
+      const systems = data
+        .map((item) => item.system)
+        .filter(
+          (value): value is string =>
+            typeof value === "string"
+        );
+
+      const uniqueSystems = [...new Set(systems)];
+
+      if (uniqueSystems.length > 0) {
+        answer =
+          `The graph contains ${uniqueSystems.length} connected systems: ` +
+          `${uniqueSystems.join(", ")}.`;
+      } else {
+        answer =
+          "No system relationships were found.";
+      }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * DEPARTMENT QUESTIONS
+     * ---------------------------------------------------------
+     */
+
+    else if (responseType === "departments") {
+      const departments = data
+        .map((item) => item.department)
+        .filter(
+          (value): value is string =>
+            typeof value === "string"
+        );
+
+      const uniqueDepartments = [
+        ...new Set(departments),
+      ];
+
+      if (uniqueDepartments.length > 0) {
+        answer =
+          `The knowledge graph contains ${uniqueDepartments.length} departments represented in the retrieved data: ` +
+          `${uniqueDepartments.join(", ")}.`;
+      } else {
+        answer =
+          "No department records were found.";
+      }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * GENERAL / OVERVIEW QUESTIONS
+     * ---------------------------------------------------------
+     */
+
+    else if (responseType === "overview") {
+      const totalNodes = data.reduce((total, item) => {
+        const count = item.count;
+
+        return (
+          total +
+          (typeof count === "number" ? count : 0)
+        );
+      }, 0);
+
+      if (totalNodes > 0) {
+        answer =
+          `I queried the live Neo4j knowledge graph. ` +
+          `The retrieved graph summary contains ${totalNodes} nodes across the available entity types.`;
+      } else {
+        answer =
+          "I queried the live Neo4j knowledge graph, but no graph summary data was returned.";
+      }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * SPECIAL KEYWORD FALLBACKS
+     * ---------------------------------------------------------
+     */
+
+    else if (
       question.includes("neo4j") ||
       question.includes("knowledge graph")
     ) {
       answer =
-        "The AI Operations Lab platform uses Neo4j Aura as the live knowledge graph. It currently contains 39 nodes and 72 relationships across processes, automations, systems, technologies, departments and documents.";
+        "The AI Operations Lab platform uses Neo4j Aura as the live operational knowledge graph.";
     }
 
     return {

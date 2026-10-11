@@ -12,12 +12,6 @@ export type AIContextResult = {
  * ---------------------------------------------------------
  * NORMALIZE NEO4J VALUES
  * ---------------------------------------------------------
- *
- * Neo4j returns integer properties as Neo4j Integer objects.
- * These need to be converted into normal JavaScript numbers
- * before being returned to the frontend or passed to an AI
- * provider.
- * ---------------------------------------------------------
  */
 
 function normalizeNeo4jValue(value: unknown): unknown {
@@ -60,26 +54,31 @@ export async function buildAIContext(
 
   /*
    * ---------------------------------------------------------
-   * 1. PROCESS QUESTIONS
+   * 1. DEPENDENCY QUESTIONS
+   * ---------------------------------------------------------
+   *
+   * This must come BEFORE process questions because questions
+   * such as "What are the process dependencies?" contain
+   * both "process" and "dependency".
    * ---------------------------------------------------------
    */
 
   if (
-    normalizedQuestion.includes("process") ||
-    normalizedQuestion.includes("processes")
+    normalizedQuestion.includes("dependenc") ||
+    normalizedQuestion.includes("depends") ||
+    normalizedQuestion.includes("impact") ||
+    normalizedQuestion.includes("connected")
   ) {
-    responseType = "processes";
+    responseType = "dependencies";
 
     query = `
-      MATCH (p:Process)
-      OPTIONAL MATCH (d:Department)-[:CONTAINS]->(p)
-      OPTIONAL MATCH (p)-[:AUTOMATED_BY]->(a:Automation)
+      MATCH (p1:Process)-[:DEPENDS_ON]->(p2:Process)
+      OPTIONAL MATCH (d:Department)-[:CONTAINS]->(p1)
       RETURN
-        p.id AS processId,
-        p.name AS process,
-        d.name AS department,
-        a.name AS automation
-      ORDER BY p.name
+        p1.name AS process,
+        p2.name AS dependsOn,
+        d.name AS department
+      ORDER BY p1.name
     `;
   }
 
@@ -113,32 +112,7 @@ export async function buildAIContext(
 
   /*
    * ---------------------------------------------------------
-   * 3. DEPENDENCY QUESTIONS
-   * ---------------------------------------------------------
-   */
-
-  else if (
-    normalizedQuestion.includes("dependenc") ||
-    normalizedQuestion.includes("depends") ||
-    normalizedQuestion.includes("impact") ||
-    normalizedQuestion.includes("connected")
-  ) {
-    responseType = "dependencies";
-
-    query = `
-      MATCH (p1:Process)-[:DEPENDS_ON]->(p2:Process)
-      OPTIONAL MATCH (d:Department)-[:CONTAINS]->(p1)
-      RETURN
-        p1.name AS process,
-        p2.name AS dependsOn,
-        d.name AS department
-      ORDER BY p1.name
-    `;
-  }
-
-  /*
-   * ---------------------------------------------------------
-   * 4. TECHNOLOGY QUESTIONS
+   * 3. TECHNOLOGY QUESTIONS
    * ---------------------------------------------------------
    */
 
@@ -162,7 +136,7 @@ export async function buildAIContext(
 
   /*
    * ---------------------------------------------------------
-   * 5. SYSTEM QUESTIONS
+   * 4. SYSTEM QUESTIONS
    * ---------------------------------------------------------
    */
 
@@ -185,7 +159,7 @@ export async function buildAIContext(
 
   /*
    * ---------------------------------------------------------
-   * 6. DEPARTMENT QUESTIONS
+   * 5. DEPARTMENT QUESTIONS
    * ---------------------------------------------------------
    */
 
@@ -204,6 +178,31 @@ export async function buildAIContext(
         collect(DISTINCT p.name) AS processes,
         collect(DISTINCT a.name) AS automations
       ORDER BY d.name
+    `;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * 6. PROCESS QUESTIONS
+   * ---------------------------------------------------------
+   */
+
+  else if (
+    normalizedQuestion.includes("process") ||
+    normalizedQuestion.includes("processes")
+  ) {
+    responseType = "processes";
+
+    query = `
+      MATCH (p:Process)
+      OPTIONAL MATCH (d:Department)-[:CONTAINS]->(p)
+      OPTIONAL MATCH (p)-[:AUTOMATED_BY]->(a:Automation)
+      RETURN
+        p.id AS processId,
+        p.name AS process,
+        d.name AS department,
+        a.name AS automation
+      ORDER BY p.name
     `;
   }
 
@@ -228,7 +227,7 @@ export async function buildAIContext(
 
   /*
    * ---------------------------------------------------------
-   * 8. QUERY NEO4J
+   * QUERY NEO4J
    * ---------------------------------------------------------
    */
 
@@ -236,7 +235,7 @@ export async function buildAIContext(
 
   /*
    * ---------------------------------------------------------
-   * 9. NORMALIZE NEO4J DATA
+   * NORMALIZE NEO4J DATA
    * ---------------------------------------------------------
    */
 
@@ -250,7 +249,7 @@ export async function buildAIContext(
 
   /*
    * ---------------------------------------------------------
-   * 10. RETURN AI CONTEXT
+   * RETURN AI CONTEXT
    * ---------------------------------------------------------
    */
 
