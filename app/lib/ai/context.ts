@@ -1,5 +1,6 @@
 import neo4j from "neo4j-driver";
 import driver from "@/app/lib/neo4j";
+import { retrieveDocuments } from "@/app/lib/ai/retrieval";
 
 export type AIContextSource = {
   type: "graph" | "document";
@@ -17,10 +18,8 @@ export type AIContextResult = {
   graphData: Record<string, unknown>[];
 
   /*
-   * Reserved for future RAG document retrieval.
-   *
-   * Currently empty because document retrieval has not
-   * been implemented yet.
+   * Relevant document information retrieved by the
+   * document retrieval layer.
    */
   documentData: Record<string, unknown>[];
 
@@ -69,21 +68,21 @@ function normalizeNeo4jValue(value: unknown): unknown {
  *
  * Current architecture:
  *
- * Neo4j
- *   ↓
- * Graph Context
- *   ↓
- * AI Provider
+ * Question
+ *    ↓
+ * ┌─────────────────────────────┐
+ * │ Context Builder             │
+ * ├─────────────────────────────┤
+ * │ Neo4j Graph Retrieval       │
+ * │ Document Retrieval          │
+ * └──────────────┬──────────────┘
+ *                ↓
+ *         Unified AI Context
+ *                ↓
+ *            AI Provider
  *
- * Future architecture:
- *
- * Neo4j + Documents
- *   ↓
- * Retrieval / RAG
- *   ↓
- * Unified AI Context
- *   ↓
- * AI Provider
+ * The document retrieval layer currently returns no
+ * documents. It is ready for future RAG implementation.
  * ---------------------------------------------------------
  */
 
@@ -98,11 +97,6 @@ export async function buildAIContext(
   /*
    * ---------------------------------------------------------
    * 1. DEPENDENCY QUESTIONS
-   * ---------------------------------------------------------
-   *
-   * This must come BEFORE process questions because questions
-   * such as "What are the process dependencies?" contain
-   * both "process" and "dependency".
    * ---------------------------------------------------------
    */
 
@@ -292,15 +286,36 @@ export async function buildAIContext(
 
   /*
    * ---------------------------------------------------------
-   * DOCUMENT CONTEXT
+   * DOCUMENT RETRIEVAL
    * ---------------------------------------------------------
    *
-   * RAG is intentionally not active yet.
-   * This array will later contain retrieved document chunks.
+   * Currently returns an empty document collection.
+   *
+   * Later this function can perform:
+   *
+   * Question
+   *   ↓
+   * Embedding / keyword search
+   *   ↓
+   * Relevant document chunks
+   *   ↓
+   * documentData
    * ---------------------------------------------------------
    */
 
-  const documentData: Record<string, unknown>[] = [];
+  const retrievalResult =
+    await retrieveDocuments(question);
+
+  const documentData =
+    retrievalResult.documents.map(
+      (document) => ({
+        id: document.id,
+        title: document.title,
+        content: document.content,
+        source: document.source,
+        score: document.score,
+      })
+    );
 
   /*
    * ---------------------------------------------------------
@@ -316,6 +331,15 @@ export async function buildAIContext(
         "Live operational knowledge graph containing processes, automations, systems, technologies and relationships.",
     },
   ];
+
+  if (documentData.length > 0) {
+    sources.push({
+      type: "document",
+      name: "Document Retrieval",
+      description:
+        "Relevant documents retrieved for the user's question.",
+    });
+  }
 
   /*
    * ---------------------------------------------------------
