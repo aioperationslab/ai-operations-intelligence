@@ -1,396 +1,718 @@
-import Link from "next/link";
-import Sidebar from "../components/Sidebar";
+"use client";
 
-const processes = [
-  {
-    name: "Invoice Processing",
-    department: "Finance",
-    volume: "12,480 / year",
-    manualTime: "18 min",
-    automation: "92%",
-    impact: "High",
-    systems: "SAP · Outlook · Excel",
-  },
-  {
-    name: "Supplier Query Management",
-    department: "Procurement",
-    volume: "8,240 / year",
-    manualTime: "14 min",
-    automation: "87%",
-    impact: "High",
-    systems: "Outlook · SAP",
-  },
-  {
-    name: "Purchase Order Validation",
-    department: "Supply Chain",
-    volume: "6,720 / year",
-    manualTime: "11 min",
-    automation: "74%",
-    impact: "Medium",
-    systems: "SAP · Excel",
-  },
-  {
-    name: "Customer Master Data Updates",
-    department: "Operations",
-    volume: "4,180 / year",
-    manualTime: "9 min",
-    automation: "61%",
-    impact: "Medium",
-    systems: "CRM · Excel",
-  },
-  {
-    name: "Payment Status Requests",
-    department: "Finance",
-    volume: "5,640 / year",
-    manualTime: "7 min",
-    automation: "89%",
-    impact: "High",
-    systems: "SAP · Outlook",
-  },
-];
+import { useEffect, useMemo, useState } from "react";
+import AppShell from "@/app/components/AppShell";
 
-export default function ProcessIntelligence() {
-  return (
-    <>
-      <Sidebar />
+type Process = {
+  processId: string;
+  processName: string;
+  departmentName: string;
 
-      <main className="ml-64 min-h-screen bg-slate-950 text-white">
-        {/* Header */}
-        <header className="border-b border-slate-800 bg-slate-950/95">
-          <div className="flex items-center justify-between px-8 py-4">
-            <div className="flex items-center gap-4">
-              {/* Back to Overview */}
-              <Link
-                href="/"
-                className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 transition hover:border-cyan-400/40 hover:bg-slate-800 hover:text-white"
-              >
-                <span className="text-base">←</span>
-                <span>Overview</span>
-              </Link>
+  automationId: string;
+  automationName: string;
 
-              {/* Divider */}
-              <div className="h-8 w-px bg-slate-800" />
+  maturity: "Production" | "Pilot" | "Other";
+  confidence: number;
 
-              {/* Page title */}
-              <div>
-                <p className="text-xs text-slate-500">
-                  Operations Intelligence Platform
-                </p>
+  systems: number;
+  dependencies: number;
 
-                <h1 className="mt-0.5 text-lg font-semibold">
-                  Process Intelligence
-                </h1>
-              </div>
-            </div>
+  opportunityScore: number;
+  priority: "High" | "Medium" | "Low";
+};
 
-            {/* Status */}
-            <div className="flex items-center gap-3">
-              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400">
-                ● System Online
-              </span>
+type ApiResponse = {
+  success: boolean;
 
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-sm font-medium">
-                FZ
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <div className="mx-auto max-w-7xl px-8 py-10">
-          {/* Page Introduction */}
-          <section>
-            <p className="text-sm font-medium uppercase tracking-widest text-cyan-400">
-              Process Discovery
-            </p>
-
-            <div className="mt-3 flex items-end justify-between gap-6">
-              <div>
-                <h2 className="text-4xl font-semibold tracking-tight">
-                  Understand how your organization operates.
-                </h2>
-
-                <p className="mt-4 max-w-3xl text-base leading-7 text-slate-400">
-                  Analyze operational processes, identify repetitive
-                  activities, and evaluate where AI and automation can
-                  create the greatest business impact.
-                </p>
-              </div>
-
-              <button className="shrink-0 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300">
-                + Analyze Process
-              </button>
-            </div>
-          </section>
-
-          {/* Summary Cards */}
-          <section className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <SummaryCard
-              label="Processes Analyzed"
-              value="248"
-              description="Across 6 business functions"
-            />
-
-            <SummaryCard
-              label="High Opportunities"
-              value="12"
-              description="Ready for automation"
-            />
-
-            <SummaryCard
-              label="Manual Hours"
-              value="18,640"
-              description="Estimated annually"
-            />
-
-            <SummaryCard
-              label="Automation Potential"
-              value="74%"
-              description="Average opportunity score"
-            />
-          </section>
-
-          {/* Filters */}
-          <section className="mt-8 rounded-2xl border border-slate-800 bg-slate-900 p-5">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex-1">
-                <input
-                  type="text"
-                  placeholder="Search processes..."
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400"
-                />
-              </div>
-
-              <button className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-slate-300 transition hover:bg-slate-800">
-                All departments
-              </button>
-
-              <button className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-slate-300 transition hover:bg-slate-800">
-                All opportunities
-              </button>
-
-              <button className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-slate-300 transition hover:bg-slate-800">
-                Sort: Opportunity
-              </button>
-            </div>
-          </section>
-
-          {/* Process Table */}
-          <section className="mt-6 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
-            <div className="border-b border-slate-800 px-6 py-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">
-                    Process Inventory
-                  </p>
-
-                  <h3 className="mt-1 text-lg font-semibold">
-                    Identified operational processes
-                  </h3>
-                </div>
-
-                <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-400">
-                  {processes.length} shown
-                </span>
-              </div>
-            </div>
-
-            {/* Table Header */}
-            <div className="hidden grid-cols-12 gap-4 border-b border-slate-800 bg-slate-950/50 px-6 py-3 text-xs font-medium uppercase tracking-wider text-slate-500 md:grid">
-              <div className="col-span-3">Process</div>
-              <div className="col-span-2">Volume</div>
-              <div className="col-span-2">Manual Time</div>
-              <div className="col-span-2">Automation</div>
-              <div className="col-span-1">Impact</div>
-              <div className="col-span-2">Systems</div>
-            </div>
-
-            {/* Table Rows */}
-            <div>
-              {processes.map((process) => (
-                <ProcessTableRow
-                  key={process.name}
-                  process={process}
-                />
-              ))}
-            </div>
-          </section>
-
-          {/* AI Insight */}
-          <section className="mt-6 rounded-2xl border border-cyan-500/20 bg-gradient-to-r from-cyan-500/10 via-slate-900 to-slate-900 p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-400/10 text-lg text-cyan-400">
-                ✦
-              </div>
-
-              <div>
-                <p className="text-sm font-medium text-cyan-400">
-                  AI Operations Insight
-                </p>
-
-                <h3 className="mt-1 text-lg font-semibold">
-                  Invoice Processing is currently the strongest automation
-                  candidate.
-                </h3>
-
-                <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
-                  The process combines high transaction volume, significant
-                  manual effort, and a strong automation potential score.
-                  The AI Operations Agent recommends investigating document
-                  extraction, classification, validation, and automated
-                  response generation as the first optimization
-                  opportunities.
-                </p>
-              </div>
-            </div>
-          </section>
-        </div>
-      </main>
-    </>
-  );
-}
-
-/* Summary Card */
-
-function SummaryCard({
-  label,
-  value,
-  description,
-}: {
-  label: string;
-  value: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 transition hover:border-slate-700">
-      <p className="text-sm text-slate-400">{label}</p>
-
-      <p className="mt-3 text-3xl font-semibold tracking-tight">
-        {value}
-      </p>
-
-      <p className="mt-2 text-xs text-slate-500">
-        {description}
-      </p>
-    </div>
-  );
-}
-
-/* Process Table Row */
-
-function ProcessTableRow({
-  process,
-}: {
-  process: {
-    name: string;
-    department: string;
-    volume: string;
-    manualTime: string;
-    automation: string;
-    impact: string;
-    systems: string;
+  summary: {
+    processes: number;
+    production: number;
+    pilot: number;
+    averageConfidence: number;
+    highPriority: number;
+    mediumPriority: number;
+    lowPriority: number;
+    averageOpportunity: number;
   };
-}) {
+
+  processes: Process[];
+};
+
+export default function ProcessIntelligencePage() {
+  const [data, setData] = useState<ApiResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [filter, setFilter] = useState("All");
+  const [selectedProcess, setSelectedProcess] = useState<Process | null>(
+    null
+  );
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+
+        const response = await fetch("/api/process-intelligence", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to load process intelligence data.");
+        }
+
+        const result: ApiResponse = await response.json();
+
+        if (!result.success) {
+          throw new Error("Process intelligence API returned an error.");
+        }
+
+        setData(result);
+        setError("");
+      } catch (err) {
+        console.error(err);
+        setError("Unable to load process intelligence from Neo4j.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  const filteredProcesses = useMemo(() => {
+    if (!data) return [];
+
+    if (filter === "All") {
+      return data.processes;
+    }
+
+    return data.processes.filter(
+      (process) => process.priority === filter
+    );
+  }, [data, filter]);
+
   return (
-    <div className="border-b border-slate-800 px-6 py-5 transition last:border-0 hover:bg-slate-800/30">
-      {/* Desktop */}
-      <div className="hidden grid-cols-12 items-center gap-4 md:grid">
-        <div className="col-span-3">
-          <p className="font-medium text-slate-200">
-            {process.name}
-          </p>
+    <AppShell
+      title="Process Intelligence"
+      description="Analyze operational processes, automation maturity, dependencies and opportunities using the live knowledge graph."
+    >
+      <div>
+        {loading && (
+          <div className="rounded-2xl border border-slate-800 bg-[#0b1626] p-10 text-center">
+            <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-slate-700 border-t-cyan-400" />
 
-          <p className="mt-1 text-xs text-slate-500">
-            {process.department}
-          </p>
-        </div>
+            <p className="text-sm text-slate-400">
+              Loading process intelligence from Neo4j...
+            </p>
+          </div>
+        )}
 
-        <div className="col-span-2 text-sm text-slate-400">
-          {process.volume}
-        </div>
+        {!loading && error && (
+          <div className="rounded-2xl border border-red-900/60 bg-red-950/20 p-6">
+            <div className="font-semibold text-red-400">
+              Process Intelligence unavailable
+            </div>
 
-        <div className="col-span-2 text-sm text-slate-400">
-          {process.manualTime}
-        </div>
+            <p className="mt-2 text-sm text-slate-400">
+              {error}
+            </p>
+          </div>
+        )}
 
-        <div className="col-span-2">
-          <div className="flex items-center gap-3">
-            <div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-800">
-              <div
-                className="h-full rounded-full bg-cyan-400"
-                style={{
-                  width: process.automation,
-                }}
+        {!loading && !error && data && (
+          <>
+            {/* KPI cards */}
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <MetricCard
+                label="Processes"
+                value={data.summary.processes}
+                description="Processes in knowledge graph"
+              />
+
+              <MetricCard
+                label="Production"
+                value={data.summary.production}
+                description="Processes with production automation"
+              />
+
+              <MetricCard
+                label="Pilot"
+                value={data.summary.pilot}
+                description="Processes currently in pilot"
+              />
+
+              <MetricCard
+                label="Average Confidence"
+                value={`${data.summary.averageConfidence}%`}
+                description="Across automated processes"
+                accent
               />
             </div>
 
-            <span className="text-sm font-semibold text-cyan-400">
-              {process.automation}
-            </span>
-          </div>
-        </div>
+            {/* Secondary KPIs */}
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <SecondaryMetric
+                label="High Priority"
+                value={data.summary.highPriority}
+                description="Immediate improvement candidates"
+                type="high"
+              />
 
-        <div className="col-span-1">
-          <ImpactBadge impact={process.impact} />
-        </div>
+              <SecondaryMetric
+                label="Medium Priority"
+                value={data.summary.mediumPriority}
+                description="Processes worth reviewing"
+                type="medium"
+              />
 
-        <div className="col-span-2 text-xs text-slate-500">
-          {process.systems}
-        </div>
+              <SecondaryMetric
+                label="Average Opportunity"
+                value={data.summary.averageOpportunity}
+                description="Opportunity score out of 100"
+                type="opportunity"
+              />
+            </div>
+
+            {/* Process Portfolio */}
+            <section className="mt-8 rounded-2xl border border-slate-800 bg-[#0b1626]">
+              <div className="border-b border-slate-800 px-6 py-5">
+                <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                  <div>
+                    <h2 className="text-lg font-semibold">
+                      Process Portfolio
+                    </h2>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      Live operational processes ranked by maturity,
+                      confidence, dependencies and automation opportunity.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {["All", "High", "Medium", "Low"].map((item) => (
+                      <button
+                        key={item}
+                        onClick={() => setFilter(item)}
+                        className={`rounded-lg border px-4 py-2 text-xs font-medium transition ${
+                          filter === item
+                            ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-300"
+                            : "border-slate-700 bg-slate-900/40 text-slate-400 hover:border-slate-600 hover:text-white"
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="divide-y divide-slate-800">
+                {filteredProcesses.map((process) => (
+                  <ProcessRow
+                    key={process.processId}
+                    process={process}
+                    onClick={() => setSelectedProcess(process)}
+                  />
+                ))}
+
+                {filteredProcesses.length === 0 && (
+                  <div className="px-6 py-10 text-center text-sm text-slate-500">
+                    No processes match this filter.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Insight panels */}
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <ConfidenceDistribution processes={data.processes} />
+
+              <DepartmentCoverage processes={data.processes} />
+            </div>
+
+            {/* Synthetic data notice */}
+            <div className="mt-6 flex items-center justify-between rounded-xl border border-slate-800 bg-[#081321] px-5 py-4">
+              <div>
+                <div className="text-xs font-medium text-slate-300">
+                  Synthetic enterprise dataset
+                </div>
+
+                <div className="mt-1 text-[11px] text-slate-500">
+                  AI Operations Lab · Neo4j knowledge graph
+                </div>
+              </div>
+
+              <div className="text-[11px] text-slate-500">
+                Knowledge Graph Intelligence · LIVE
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Mobile */}
-      <div className="md:hidden">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="font-medium text-slate-200">
-              {process.name}
-            </p>
+      {/* Process detail modal */}
+      {selectedProcess && (
+        <ProcessDetail
+          process={selectedProcess}
+          onClose={() => setSelectedProcess(null)}
+        />
+      )}
+    </AppShell>
+  );
+}
 
-            <p className="mt-1 text-xs text-slate-500">
-              {process.department}
+/* =========================================================
+   KPI COMPONENTS
+========================================================= */
+
+function MetricCard({
+  label,
+  value,
+  description,
+  accent = false,
+}: {
+  label: string;
+  value: string | number;
+  description: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-[#0b1626] p-5">
+      <div className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+        {label}
+      </div>
+
+      <div
+        className={`mt-3 text-3xl font-semibold ${
+          accent ? "text-cyan-400" : "text-white"
+        }`}
+      >
+        {value}
+      </div>
+
+      <div className="mt-2 text-[11px] text-slate-600">
+        {description}
+      </div>
+    </div>
+  );
+}
+
+function SecondaryMetric({
+  label,
+  value,
+  description,
+  type,
+}: {
+  label: string;
+  value: number;
+  description: string;
+  type: "high" | "medium" | "opportunity";
+}) {
+  const valueClass =
+    type === "high"
+      ? "text-red-400"
+      : type === "medium"
+        ? "text-amber-400"
+        : "text-cyan-400";
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-[#091422] p-5">
+      <div className="text-[10px] uppercase tracking-wider text-slate-500">
+        {label}
+      </div>
+
+      <div className={`mt-2 text-2xl font-semibold ${valueClass}`}>
+        {value}
+      </div>
+
+      <div className="mt-1 text-[11px] text-slate-600">
+        {description}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   PROCESS ROW
+========================================================= */
+
+function ProcessRow({
+  process,
+  onClick,
+}: {
+  process: Process;
+  onClick: () => void;
+}) {
+  const maturityScore =
+    process.maturity === "Production"
+      ? 100
+      : process.maturity === "Pilot"
+        ? 60
+        : 0;
+
+  return (
+    <button
+      onClick={onClick}
+      className="group block w-full text-left transition hover:bg-slate-900/40"
+    >
+      <div className="px-6 py-5">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <PriorityBadge priority={process.priority} />
+
+              <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[10px] text-slate-500">
+                {process.processId}
+              </span>
+
+              <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[10px] text-slate-500">
+                {process.maturity}
+              </span>
+            </div>
+
+            <h3 className="text-sm font-medium text-white group-hover:text-cyan-300">
+              {process.processName}
+            </h3>
+
+            <div className="mt-1 text-xs text-slate-500">
+              {process.departmentName} · {process.automationName}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-8">
+            <ProcessMetric
+              label="Opportunity"
+              value={process.opportunityScore}
+              accent
+            />
+
+            <ProcessMetric
+              label="Confidence"
+              value={`${process.confidence}%`}
+            />
+
+            <ProcessMetric
+              label="Maturity"
+              value={maturityScore}
+            />
+
+            <ProcessMetric
+              label="Systems"
+              value={process.systems}
+            />
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function ProcessMetric({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: string | number;
+  accent?: boolean;
+}) {
+  return (
+    <div>
+      <div className="text-[9px] uppercase tracking-wider text-slate-600">
+        {label}
+      </div>
+
+      <div
+        className={`mt-1 text-lg font-semibold ${
+          accent ? "text-cyan-400" : "text-white"
+        }`}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function PriorityBadge({ priority }: { priority: string }) {
+  const styles =
+    priority === "High"
+      ? "border-red-500/30 bg-red-500/10 text-red-400"
+      : priority === "Medium"
+        ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
+        : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
+
+  return (
+    <span
+      className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${styles}`}
+    >
+      {priority}
+    </span>
+  );
+}
+
+/* =========================================================
+   CONFIDENCE DISTRIBUTION
+========================================================= */
+
+function ConfidenceDistribution({
+  processes,
+}: {
+  processes: Process[];
+}) {
+  const buckets = [
+    {
+      label: "90–100%",
+      count: processes.filter((p) => p.confidence >= 90).length,
+    },
+    {
+      label: "80–89%",
+      count: processes.filter(
+        (p) => p.confidence >= 80 && p.confidence < 90
+      ).length,
+    },
+    {
+      label: "70–79%",
+      count: processes.filter(
+        (p) => p.confidence >= 70 && p.confidence < 80
+      ).length,
+    },
+    {
+      label: "<70%",
+      count: processes.filter((p) => p.confidence < 70).length,
+    },
+  ];
+
+  const max = Math.max(
+    ...buckets.map((bucket) => bucket.count),
+    1
+  );
+
+  return (
+    <section className="rounded-2xl border border-slate-800 bg-[#0b1626] p-6">
+      <h2 className="text-base font-semibold">
+        Automation Confidence
+      </h2>
+
+      <p className="mt-1 text-xs text-slate-500">
+        Confidence distribution across processes
+      </p>
+
+      <div className="mt-6 space-y-5">
+        {buckets.map((bucket) => (
+          <div key={bucket.label}>
+            <div className="mb-2 flex justify-between text-[11px]">
+              <span className="text-slate-300">
+                {bucket.label}
+              </span>
+
+              <span className="text-slate-500">
+                {bucket.count} processes
+              </span>
+            </div>
+
+            <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-cyan-400 transition-all"
+                style={{
+                  width: `${(bucket.count / max) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   DEPARTMENT COVERAGE
+========================================================= */
+
+function DepartmentCoverage({
+  processes,
+}: {
+  processes: Process[];
+}) {
+  const departments = Array.from(
+    new Set(processes.map((process) => process.departmentName))
+  )
+    .map((department) => ({
+      department,
+      count: processes.filter(
+        (process) => process.departmentName === department
+      ).length,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const max = Math.max(
+    ...departments.map((item) => item.count),
+    1
+  );
+
+  return (
+    <section className="rounded-2xl border border-slate-800 bg-[#0b1626] p-6">
+      <h2 className="text-base font-semibold">
+        Process Coverage by Department
+      </h2>
+
+      <p className="mt-1 text-xs text-slate-500">
+        Distribution of processes across the operating model
+      </p>
+
+      <div className="mt-6 space-y-4">
+        {departments.map((item) => (
+          <div key={item.department}>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs text-slate-300">
+                {item.department}
+              </span>
+
+              <span className="text-xs font-semibold text-white">
+                {item.count}
+              </span>
+            </div>
+
+            <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-cyan-400"
+                style={{
+                  width: `${(item.count / max) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   PROCESS DETAIL
+========================================================= */
+
+function ProcessDetail({
+  process,
+  onClose,
+}: {
+  process: Process;
+  onClose: () => void;
+}) {
+  const maturityScore =
+    process.maturity === "Production"
+      ? 100
+      : process.maturity === "Pilot"
+        ? 60
+        : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-700 bg-[#091422] shadow-2xl">
+        {/* Header */}
+        <div className="flex items-start justify-between border-b border-slate-800 p-6">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <PriorityBadge priority={process.priority} />
+
+              <span className="text-xs text-slate-500">
+                {process.processId}
+              </span>
+            </div>
+
+            <h2 className="text-2xl font-semibold">
+              {process.processName}
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              {process.departmentName}
             </p>
           </div>
 
-          <ImpactBadge impact={process.impact} />
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-400 hover:bg-slate-800 hover:text-white"
+          >
+            ✕
+          </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-xs text-slate-600">Volume</p>
+        <div className="space-y-6 p-6">
+          {/* Overview */}
+          <div className="grid gap-4 md:grid-cols-4">
+            <DetailMetric
+              label="Opportunity"
+              value={process.opportunityScore}
+            />
 
-            <p className="mt-1 text-slate-400">
-              {process.volume}
-            </p>
+            <DetailMetric
+              label="Confidence"
+              value={`${process.confidence}%`}
+            />
+
+            <DetailMetric
+              label="Maturity"
+              value={maturityScore}
+            />
+
+            <DetailMetric
+              label="Systems"
+              value={process.systems}
+            />
           </div>
 
-          <div>
-            <p className="text-xs text-slate-600">
-              Manual Time
-            </p>
+          {/* Automation */}
+          <DetailSection title="Automation">
+            <div className="rounded-xl border border-slate-800 bg-[#07111f] p-4">
+              <div className="text-sm font-medium">
+                {process.automationName}
+              </div>
 
-            <p className="mt-1 text-slate-400">
-              {process.manualTime}
-            </p>
-          </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <span className="rounded-full border border-slate-700 px-2 py-1 text-[10px] text-slate-400">
+                  {process.automationId}
+                </span>
 
-          <div>
-            <p className="text-xs text-slate-600">
-              Automation
-            </p>
+                <span className="rounded-full border border-slate-700 px-2 py-1 text-[10px] text-slate-400">
+                  {process.maturity}
+                </span>
+              </div>
+            </div>
+          </DetailSection>
 
-            <p className="mt-1 font-semibold text-cyan-400">
-              {process.automation}
-            </p>
-          </div>
+          {/* Systems */}
+          <DetailSection title="Systems">
+            <div className="text-sm text-slate-400">
+              {process.systems} system
+              {process.systems === 1 ? "" : "s"} connected to this
+              automation.
+            </div>
+          </DetailSection>
 
-          <div>
-            <p className="text-xs text-slate-600">
-              Systems
-            </p>
+          {/* Dependencies */}
+          <DetailSection title="Dependencies">
+            <div className="text-sm text-slate-400">
+              {process.dependencies > 0
+                ? `${process.dependencies} process ${
+                    process.dependencies === 1 ? "dependency" : "dependencies"
+                  } identified.`
+                : "No process dependencies identified."}
+            </div>
+          </DetailSection>
 
-            <p className="mt-1 text-slate-400">
-              {process.systems}
+          {/* Intelligence */}
+          <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-5">
+            <div className="text-xs font-semibold uppercase tracking-wider text-cyan-400">
+              Process Intelligence
+            </div>
+
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              This process has an opportunity score of{" "}
+              <span className="font-semibold text-white">
+                {process.opportunityScore}
+              </span>{" "}
+              based on its automation confidence, maturity, system
+              complexity and dependency structure.
             </p>
           </div>
         </div>
@@ -399,24 +721,40 @@ function ProcessTableRow({
   );
 }
 
-/* Impact Badge */
-
-function ImpactBadge({
-  impact,
+function DetailMetric({
+  label,
+  value,
 }: {
-  impact: string;
+  label: string;
+  value: string | number;
 }) {
-  const high = impact === "High";
-
   return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs ${
-        high
-          ? "bg-emerald-500/10 text-emerald-400"
-          : "bg-amber-500/10 text-amber-400"
-      }`}
-    >
-      {impact}
-    </span>
+    <div className="rounded-xl border border-slate-800 bg-[#07111f] p-4">
+      <div className="text-[10px] uppercase tracking-wider text-slate-600">
+        {label}
+      </div>
+
+      <div className="mt-2 text-xl font-semibold text-white">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function DetailSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        {title}
+      </div>
+
+      {children}
+    </div>
   );
 }

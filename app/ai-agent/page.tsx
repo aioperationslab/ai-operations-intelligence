@@ -1,407 +1,551 @@
-import Link from "next/link";
-import Sidebar from "../components/Sidebar";
+"use client";
 
-const suggestedQuestions = [
-  "Which processes should we automate first?",
-  "Where are we losing the most manual hours?",
-  "Which processes have the highest business impact?",
-  "What are the biggest automation opportunities?",
-];
+import { FormEvent, useState } from "react";
+import AppShell from "@/app/components/AppShell";
 
-const recentInsights = [
-  {
-    title: "Invoice Processing",
-    description:
-      "High transaction volume and manual effort make this the strongest automation candidate.",
-    score: "92%",
-  },
-  {
-    title: "Supplier Query Management",
-    description:
-      "High repetitive workload with strong potential for AI-assisted classification and response.",
-    score: "87%",
-  },
-  {
-    title: "Payment Status Requests",
-    description:
-      "Frequent requests across Finance could be handled through automated retrieval and response.",
-    score: "89%",
-  },
-];
+type AgentResult = {
+  success: boolean;
+  question?: string;
+  responseType?: string;
+  answer?: string;
+  data?: Record<string, unknown>[];
+  source?: string;
+  message?: string;
+};
 
-export default function AIAgent() {
+export default function AIAgentPage() {
+  const [question, setQuestion] = useState("");
+  const [result, setResult] = useState<AgentResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const suggestedQuestions = [
+    "Which processes are in the knowledge graph?",
+    "Which automations are available?",
+    "What process dependencies exist?",
+    "Which technologies are used?",
+    "Which systems are connected?",
+    "Which departments are represented?",
+  ];
+
+  async function askAgent(customQuestion?: string) {
+    const finalQuestion = (customQuestion ?? question).trim();
+
+    if (!finalQuestion) {
+      return;
+    }
+
+    setQuestion(finalQuestion);
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    try {
+      const response = await fetch("/api/ai-agent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          question: finalQuestion,
+        }),
+      });
+
+      const data: AgentResult = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message || "The AI Agent could not process the request."
+        );
+      }
+
+      setResult(data);
+    } catch (err) {
+      console.error("AI Agent request failed:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while contacting the AI Agent."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    askAgent();
+  }
+
+  function renderValue(value: unknown): string {
+    if (Array.isArray(value)) {
+      return value.length > 0 ? value.join(", ") : "None";
+    }
+
+    if (value === null || value === undefined || value === "") {
+      return "—";
+    }
+
+    return String(value);
+  }
+
+  function getDisplayFields(item: Record<string, unknown>) {
+    return Object.entries(item).filter(
+      ([key, value]) =>
+        value !== null &&
+        value !== undefined &&
+        value !== "" &&
+        key !== "processId" &&
+        key !== "automationId"
+    );
+  }
+
   return (
-    <>
-      <Sidebar />
+    <AppShell
+      title="AI Agent"
+      description="Ask questions about processes, automations, systems, technologies, departments and operational dependencies using live knowledge graph data."
+    >
+      <div className="space-y-8">
+        {/* =========================================================
+            HERO
+        ========================================================= */}
 
-      <main className="ml-64 min-h-screen bg-slate-950 text-white">
-        {/* Header */}
-        <header className="border-b border-slate-800 bg-slate-950/95">
-          <div className="flex items-center justify-between px-8 py-4">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 transition hover:border-cyan-400/40 hover:bg-slate-800 hover:text-white"
+        <section className="max-w-4xl">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/5 px-3 py-1.5">
+            <span className="text-violet-300">✦</span>
+
+            <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-violet-300">
+              Operational Intelligence
+            </span>
+          </div>
+
+          <h2 className="text-4xl font-semibold tracking-tight text-white">
+            Ask your operations
+            <span className="block text-slate-400">
+              knowledge graph.
+            </span>
+          </h2>
+
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-400">
+            Ask questions about your operational processes, automations,
+            systems, technologies, departments and process dependencies. The
+            current Agent retrieves information directly from the live Neo4j
+            knowledge graph.
+          </p>
+        </section>
+
+        {/* =========================================================
+            AGENT STATUS
+        ========================================================= */}
+
+        <section className="grid gap-4 md:grid-cols-3">
+          <StatusCard
+            label="Knowledge Source"
+            value="Neo4j Aura"
+            description="Live operational graph"
+          />
+
+          <StatusCard
+            label="Current Agent"
+            value="Rule-based"
+            description="Grounded graph query engine"
+          />
+
+          <StatusCard
+            label="AI Providers"
+            value="Ready to extend"
+            description="OpenAI / Claude architecture"
+          />
+        </section>
+
+        {/* =========================================================
+            QUESTION BOX
+        ========================================================= */}
+
+        <form onSubmit={handleSubmit}>
+          <div className="rounded-2xl border border-slate-800 bg-[#0b1224] p-2">
+            <div className="flex flex-col gap-2 md:flex-row">
+              <div className="flex flex-1 items-center">
+                <span className="px-4 text-slate-500">⌕</span>
+
+                <input
+                  value={question}
+                  onChange={(event) => setQuestion(event.target.value)}
+                  placeholder="Ask a question about your operations..."
+                  className="h-12 flex-1 bg-transparent pr-4 text-sm text-white outline-none placeholder:text-slate-600"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !question.trim()}
+                className="h-12 rounded-xl bg-cyan-400 px-6 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                <span>←</span>
-                <span>Overview</span>
-              </Link>
+                {loading ? "Querying..." : "Ask Agent"}
+              </button>
+            </div>
+          </div>
+        </form>
 
-              <div className="h-8 w-px bg-slate-800" />
+        {/* =========================================================
+            SUGGESTED QUESTIONS
+        ========================================================= */}
+
+        <section>
+          <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+            Suggested questions
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {suggestedQuestions.map((item) => (
+              <button
+                key={item}
+                onClick={() => askAgent(item)}
+                disabled={loading}
+                className="rounded-full border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-slate-400 transition hover:border-cyan-900 hover:bg-cyan-950/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* =========================================================
+            ERROR
+        ========================================================= */}
+
+        {error && (
+          <div className="rounded-xl border border-red-900 bg-red-950/20 p-5">
+            <div className="flex items-start gap-3">
+              <div className="text-red-400">!</div>
 
               <div>
-                <p className="text-xs text-slate-500">
-                  Operations Intelligence Platform
-                </p>
+                <div className="text-sm font-semibold text-red-300">
+                  Agent request failed
+                </div>
 
-                <h1 className="mt-0.5 text-lg font-semibold">
-                  AI Operations Agent
-                </h1>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400">
-                ● System Online
-              </span>
-
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-sm font-medium">
-                FZ
+                <div className="mt-1 text-xs leading-6 text-red-300/70">
+                  {error}
+                </div>
               </div>
             </div>
           </div>
-        </header>
+        )}
 
-        {/* Content */}
-        <div className="mx-auto max-w-7xl px-8 py-10">
-          {/* Hero */}
-          <section>
-            <p className="text-sm font-medium uppercase tracking-widest text-cyan-400">
-              Intelligence Layer
-            </p>
+        {/* =========================================================
+            LOADING
+        ========================================================= */}
 
-            <h2 className="mt-3 text-4xl font-semibold tracking-tight">
-              Ask your operations data.
-            </h2>
+        {loading && (
+          <div className="rounded-xl border border-slate-800 bg-[#0b1224] p-8">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/5">
+                <span className="animate-pulse text-violet-300">✦</span>
+              </div>
 
-            <p className="mt-4 max-w-3xl text-base leading-7 text-slate-400">
-              Use the AI Operations Agent to understand processes, identify
-              automation opportunities, investigate operational risks, and
-              discover where AI can create the greatest business impact.
-            </p>
-          </section>
+              <div>
+                <div className="text-sm font-medium text-white">
+                  Querying knowledge graph
+                </div>
 
-          {/* Main Agent Area */}
-          <section className="mt-10 grid gap-6 lg:grid-cols-3">
-            {/* Chat */}
-            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 lg:col-span-2">
-              {/* Chat Header */}
-              <div className="flex items-center justify-between border-b border-slate-800 px-6 py-5">
+                <div className="mt-1 text-xs text-slate-500">
+                  Retrieving operational relationships from Neo4j Aura...
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 h-1 overflow-hidden rounded-full bg-slate-800">
+              <div className="h-full w-1/2 animate-pulse rounded-full bg-violet-400" />
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================
+            RESULT
+        ========================================================= */}
+
+        {result && !loading && (
+          <div className="space-y-6">
+            {/* Agent Response */}
+
+            <section className="rounded-xl border border-slate-800 bg-[#0b1224] p-6">
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 text-lg text-cyan-400">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10 text-violet-300">
                     ✦
                   </div>
 
                   <div>
-                    <h3 className="font-semibold">
-                      AI Operations Agent
-                    </h3>
+                    <div className="text-sm font-semibold text-white">
+                      Agent Response
+                    </div>
 
-                    <p className="text-xs text-slate-500">
-                      Operational intelligence assistant
-                    </p>
-                  </div>
-                </div>
-
-                <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400">
-                  Ready
-                </span>
-              </div>
-
-              {/* Conversation */}
-              <div className="min-h-[420px] px-6 py-8">
-                {/* Agent message */}
-                <div className="flex gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-sm text-cyan-400">
-                    ✦
-                  </div>
-
-                  <div className="max-w-2xl">
-                    <p className="text-xs text-slate-500">
-                      AI Operations Agent
-                    </p>
-
-                    <div className="mt-2 rounded-2xl rounded-tl-none border border-slate-800 bg-slate-950 p-4">
-                      <p className="text-sm leading-6 text-slate-300">
-                        Hello. I can analyze your operational processes and
-                        help identify where AI and automation could create
-                        the greatest impact.
-                      </p>
-
-                      <p className="mt-3 text-sm leading-6 text-slate-300">
-                        Try asking me about automation opportunities,
-                        manual effort, business impact, or process risks.
-                      </p>
+                    <div className="mt-1 text-[10px] uppercase tracking-[0.15em] text-slate-600">
+                      {result.responseType || "Knowledge Graph Query"}
                     </div>
                   </div>
                 </div>
 
-                {/* Example User Question */}
-                <div className="mt-8 flex justify-end">
-                  <div className="max-w-xl rounded-2xl rounded-tr-none bg-cyan-400 px-5 py-3 text-sm font-medium text-slate-950">
-                    Which processes should we automate first?
+                <div className="rounded-full border border-emerald-900 bg-emerald-950/20 px-3 py-1.5">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-emerald-400">
+                    Live Data
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950/60 p-5">
+                <p className="text-sm leading-7 text-slate-300">
+                  {result.answer}
+                </p>
+              </div>
+            </section>
+
+            {/* Knowledge Graph Results */}
+
+            {result.data && result.data.length > 0 && (
+              <section className="rounded-xl border border-slate-800 bg-[#0b1224] p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-semibold text-white">
+                      Knowledge Graph Results
+                    </div>
+
+                    <div className="mt-1 text-xs text-slate-500">
+                      {result.data.length} result
+                      {result.data.length !== 1 ? "s" : ""} returned from Neo4j
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-slate-800 px-3 py-2">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-slate-500">
+                      {result.source || "Neo4j Aura"}
+                    </span>
                   </div>
                 </div>
 
-                {/* Example Agent Response */}
-                <div className="mt-8 flex gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-sm text-cyan-400">
-                    ✦
-                  </div>
+                <div className="mt-6 space-y-3">
+                  {result.data.map((item, index) => {
+                    const fields = getDisplayFields(item);
 
-                  <div className="max-w-2xl">
-                    <p className="text-xs text-slate-500">
-                      AI Operations Agent
-                    </p>
+                    return (
+                      <div
+                        key={index}
+                        className="rounded-xl border border-slate-800 bg-slate-950/40 p-4 transition hover:border-slate-700"
+                      >
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                          {fields.map(([key, value]) => (
+                            <div key={key}>
+                              <div className="mb-1 text-[9px] font-semibold uppercase tracking-[0.15em] text-slate-600">
+                                {formatLabel(key)}
+                              </div>
 
-                    <div className="mt-2 rounded-2xl rounded-tl-none border border-cyan-500/20 bg-cyan-500/5 p-5">
-                      <p className="text-sm leading-6 text-slate-300">
-                        Based on the current process inventory, I would
-                        prioritize the following opportunities:
-                      </p>
-
-                      <div className="mt-4 space-y-3">
-                        <Recommendation
-                          rank="01"
-                          name="Invoice Processing"
-                          score="92%"
-                        />
-
-                        <Recommendation
-                          rank="02"
-                          name="Payment Status Requests"
-                          score="89%"
-                        />
-
-                        <Recommendation
-                          rank="03"
-                          name="Supplier Query Management"
-                          score="87%"
-                        />
+                              <div className="text-xs leading-5 text-slate-300">
+                                {renderValue(value)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-
-                      <p className="mt-4 text-sm leading-6 text-slate-400">
-                        These processes combine high transaction volume,
-                        repetitive manual work, and strong automation
-                        potential.
-                      </p>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
+              </section>
+            )}
+
+            {/* Query Metadata */}
+
+            <section className="grid gap-4 md:grid-cols-3">
+              <MetricCard
+                label="Response Type"
+                value={result.responseType || "General"}
+              />
+
+              <MetricCard
+                label="Results"
+                value={String(result.data?.length || 0)}
+              />
+
+              <MetricCard
+                label="Source"
+                value={result.source || "Neo4j Aura"}
+              />
+            </section>
+
+            {/* Grounding Notice */}
+
+            <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-4 text-[10px] leading-5 text-slate-600">
+              <span className="font-medium text-slate-500">Grounding:</span>{" "}
+              this response is based on data retrieved from the live Neo4j
+              knowledge graph. Future LLM providers will use the same graph
+              context rather than replacing Neo4j as the operational source of
+              truth.
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================
+            EMPTY STATE
+        ========================================================= */}
+
+        {!result && !loading && !error && (
+          <div className="grid gap-4 md:grid-cols-3">
+            <CapabilityCard
+              icon="◈"
+              title="Process Intelligence"
+              description="Explore processes and understand how they connect to departments and automations."
+            />
+
+            <CapabilityCard
+              icon="◇"
+              title="Automation Intelligence"
+              description="Discover automations, their technologies and the processes they support."
+            />
+
+            <CapabilityCard
+              icon="◎"
+              title="Dependency Analysis"
+              description="Understand relationships between processes, systems and operational dependencies."
+            />
+          </div>
+        )}
+
+        {/* =========================================================
+            ARCHITECTURE
+        ========================================================= */}
+
+        <section className="rounded-xl border border-cyan-900/60 bg-cyan-950/10 p-6">
+          <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-400">
+                Intelligence Architecture
               </div>
 
-              {/* Input */}
-              <div className="border-t border-slate-800 p-5">
-                <div className="flex gap-3">
-                  <input
-                    type="text"
-                    placeholder="Ask about your operations..."
-                    className="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400"
-                  />
+              <h2 className="mt-2 text-lg font-semibold text-white">
+                Graph-grounded AI Agent
+              </h2>
 
-                  <button className="rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300">
-                    Ask Agent →
-                  </button>
-                </div>
-
-                <p className="mt-2 text-[10px] text-slate-600">
-                  AI-generated insights should be validated before making
-                  business decisions.
-                </p>
-              </div>
+              <p className="mt-2 max-w-2xl text-xs leading-6 text-slate-500">
+                Neo4j remains the operational source of truth. The AI provider
+                will become a replaceable reasoning layer on top of the
+                retrieved graph context.
+              </p>
             </div>
 
-            {/* Right Panel */}
-            <div className="space-y-6">
-              {/* Suggested Questions */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-                <p className="text-xs font-medium uppercase tracking-widest text-slate-500">
-                  Suggested Questions
-                </p>
-
-                <div className="mt-4 space-y-2">
-                  {suggestedQuestions.map((question) => (
-                    <button
-                      key={question}
-                      className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-left text-sm text-slate-300 transition hover:border-cyan-400/30 hover:bg-slate-800 hover:text-white"
-                    >
-                      {question}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Agent Capabilities */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-                <p className="text-xs font-medium uppercase tracking-widest text-slate-500">
-                  Agent Capabilities
-                </p>
-
-                <div className="mt-5 space-y-4">
-                  <Capability
-                    title="Process Analysis"
-                    description="Understand process structure and operational workload."
-                  />
-
-                  <Capability
-                    title="Opportunity Detection"
-                    description="Identify high-value automation candidates."
-                  />
-
-                  <Capability
-                    title="Impact Analysis"
-                    description="Estimate potential time and business impact."
-                  />
-
-                  <Capability
-                    title="Knowledge Retrieval"
-                    description="Ground answers in enterprise operational knowledge."
-                  />
-                </div>
-              </div>
-
-              {/* Architecture */}
-              <div className="rounded-2xl border border-cyan-500/20 bg-gradient-to-b from-cyan-500/10 to-slate-900 p-6">
-                <p className="text-xs font-medium uppercase tracking-widest text-cyan-400">
-                  Intelligence Architecture
-                </p>
-
-                <div className="mt-5 space-y-2">
-                  <ArchitectureItem label="User Question" />
-
-                  <ArchitectureArrow />
-
-                  <ArchitectureItem label="AI Agent" />
-
-                  <ArchitectureArrow />
-
-                  <ArchitectureItem label="RAG + Knowledge Graph" />
-
-                  <ArchitectureArrow />
-
-                  <ArchitectureItem label="LLM Reasoning" />
-
-                  <ArchitectureArrow />
-
-                  <ArchitectureItem label="Recommendation" />
-                </div>
-              </div>
+            <div className="rounded-full border border-cyan-900 bg-cyan-950/30 px-3 py-1.5 text-[9px] text-cyan-400">
+              Provider-ready
             </div>
-          </section>
+          </div>
 
-          {/* Recent Insights */}
-          <section className="mt-8">
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="text-sm text-slate-500">
-                  Agent Context
-                </p>
+          <div className="mt-6 grid gap-3 md:grid-cols-5">
+            <ArchitectureItem label="User Question" />
 
-                <h3 className="mt-1 text-xl font-semibold">
-                  Recent operational insights
-                </h3>
-              </div>
+            <ArchitectureArrow />
 
-              <Link
-                href="/process-intelligence"
-                className="text-sm text-cyan-400 hover:text-cyan-300"
-              >
-                View processes →
-              </Link>
-            </div>
+            <ArchitectureItem label="Neo4j Context" />
 
-            <div className="mt-5 grid gap-4 md:grid-cols-3">
-              {recentInsights.map((insight) => (
-                <Insight
-                  key={insight.title}
-                  title={insight.title}
-                  description={insight.description}
-                  score={insight.score}
-                />
-              ))}
-            </div>
-          </section>
+            <ArchitectureArrow />
+
+            <ArchitectureItem label="AI Provider" />
+
+            <ArchitectureArrow />
+
+            <ArchitectureItem label="Grounded Answer" />
+
+            <ArchitectureArrow />
+
+            <ArchitectureItem label="Evidence" />
+          </div>
+        </section>
+
+        {/* =========================================================
+            FOOTER
+        ========================================================= */}
+
+        <div className="flex flex-col justify-between gap-3 border-t border-slate-800 pt-5 text-[10px] text-slate-600 md:flex-row">
+          <div>AI Operations Lab · Synthetic Enterprise Intelligence</div>
+
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            Neo4j Aura Connected
+          </div>
         </div>
-      </main>
-    </>
+      </div>
+    </AppShell>
   );
 }
 
-/* Recommendation */
+// =============================================================
+// COMPONENTS
+// =============================================================
 
-function Recommendation({
-  rank,
-  name,
-  score,
+function StatusCard({
+  label,
+  value,
+  description,
 }: {
-  rank: string;
-  name: string;
-  score: string;
+  label: string;
+  value: string;
+  description: string;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-      <div className="flex items-center gap-3">
-        <span className="text-xs font-semibold text-cyan-400">
-          {rank}
-        </span>
-
-        <span className="text-sm text-slate-200">
-          {name}
-        </span>
+    <div className="rounded-xl border border-slate-800 bg-[#0b1224] p-5">
+      <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+        {label}
       </div>
 
-      <span className="text-sm font-semibold text-cyan-400">
-        {score}
-      </span>
+      <div className="mt-3 text-sm font-medium text-white">{value}</div>
+
+      <div className="mt-1 text-[10px] text-slate-600">{description}</div>
     </div>
   );
 }
 
-/* Capability */
+function MetricCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-[#0b1224] p-5">
+      <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+        {label}
+      </div>
 
-function Capability({
+      <div className="mt-3 truncate text-sm font-medium text-slate-300">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function CapabilityCard({
+  icon,
   title,
   description,
 }: {
+  icon: string;
   title: string;
   description: string;
 }) {
   return (
-    <div>
-      <div className="flex items-center gap-2">
-        <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-
-        <p className="text-sm font-medium text-slate-200">
-          {title}
-        </p>
+    <div className="rounded-xl border border-slate-800 bg-[#0b1224] p-6 transition hover:border-slate-700">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-950 text-slate-300">
+        {icon}
       </div>
 
-      <p className="mt-1 pl-3.5 text-xs leading-5 text-slate-500">
-        {description}
-      </p>
+      <h3 className="mt-5 text-sm font-semibold text-white">{title}</h3>
+
+      <p className="mt-2 text-xs leading-6 text-slate-500">{description}</p>
     </div>
   );
 }
 
-/* Architecture */
-
-function ArchitectureItem({
-  label,
-}: {
-  label: string;
-}) {
+function ArchitectureItem({ label }: { label: string }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2 text-center text-xs text-slate-300">
+    <div className="rounded-lg border border-cyan-900/70 bg-slate-950/60 px-4 py-3 text-center text-[10px] font-medium text-slate-300">
       {label}
     </div>
   );
@@ -409,38 +553,15 @@ function ArchitectureItem({
 
 function ArchitectureArrow() {
   return (
-    <div className="text-center text-xs text-cyan-400">
-      ↓
+    <div className="hidden items-center justify-center text-cyan-800 md:flex">
+      →
     </div>
   );
 }
 
-/* Insight */
-
-function Insight({
-  title,
-  description,
-  score,
-}: {
-  title: string;
-  description: string;
-  score: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 transition hover:border-slate-700">
-      <div className="flex items-center justify-between">
-        <h4 className="font-medium text-slate-200">
-          {title}
-        </h4>
-
-        <span className="text-sm font-semibold text-cyan-400">
-          {score}
-        </span>
-      </div>
-
-      <p className="mt-3 text-sm leading-6 text-slate-500">
-        {description}
-      </p>
-    </div>
-  );
+function formatLabel(key: string) {
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/\_/g, " ")
+    .replace(/^./, (letter) => letter.toUpperCase());
 }

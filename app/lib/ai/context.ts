@@ -1,0 +1,198 @@
+import driver from "@/app/lib/neo4j";
+
+export type AIContextResult = {
+  question: string;
+  responseType: string;
+  data: Record<string, unknown>[];
+  source: "Neo4j Aura";
+};
+
+export async function buildAIContext(
+  question: string
+): Promise<AIContextResult> {
+  const normalizedQuestion = question.toLowerCase();
+
+  let query = "";
+  let responseType = "overview";
+
+  /*
+   * ---------------------------------------------------------
+   * 1. PROCESS QUESTIONS
+   * ---------------------------------------------------------
+   */
+
+  if (
+    normalizedQuestion.includes("process") ||
+    normalizedQuestion.includes("processes")
+  ) {
+    responseType = "processes";
+
+    query = `
+      MATCH (p:Process)
+      OPTIONAL MATCH (d:Department)-[:CONTAINS]->(p)
+      OPTIONAL MATCH (p)-[:AUTOMATED_BY]->(a:Automation)
+      RETURN
+        p.id AS processId,
+        p.name AS process,
+        d.name AS department,
+        a.name AS automation
+      ORDER BY p.name
+    `;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * 2. AUTOMATION QUESTIONS
+   * ---------------------------------------------------------
+   */
+
+  else if (
+    normalizedQuestion.includes("automation") ||
+    normalizedQuestion.includes("automations")
+  ) {
+    responseType = "automations";
+
+    query = `
+      MATCH (a:Automation)
+      OPTIONAL MATCH (p:Process)-[:AUTOMATED_BY]->(a)
+      OPTIONAL MATCH (a)-[:USES_TECHNOLOGY]->(t:Technology)
+      RETURN
+        a.id AS automationId,
+        a.name AS automation,
+        a.type AS automationType,
+        a.status AS status,
+        a.confidence AS confidence,
+        collect(DISTINCT p.name) AS processes,
+        collect(DISTINCT t.name) AS technologies
+      ORDER BY a.confidence DESC
+    `;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * 3. DEPENDENCY QUESTIONS
+   * ---------------------------------------------------------
+   */
+
+  else if (
+    normalizedQuestion.includes("dependenc") ||
+    normalizedQuestion.includes("depends") ||
+    normalizedQuestion.includes("impact") ||
+    normalizedQuestion.includes("connected")
+  ) {
+    responseType = "dependencies";
+
+    query = `
+      MATCH (p1:Process)-[:DEPENDS_ON]->(p2:Process)
+      OPTIONAL MATCH (d:Department)-[:CONTAINS]->(p1)
+      RETURN
+        p1.name AS process,
+        p2.name AS dependsOn,
+        d.name AS department
+      ORDER BY p1.name
+    `;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * 4. TECHNOLOGY QUESTIONS
+   * ---------------------------------------------------------
+   */
+
+  else if (
+    normalizedQuestion.includes("technology") ||
+    normalizedQuestion.includes("technologies") ||
+    normalizedQuestion.includes("tech")
+  ) {
+    responseType = "technologies";
+
+    query = `
+      MATCH (a:Automation)-[:USES_TECHNOLOGY]->(t:Technology)
+      OPTIONAL MATCH (p:Process)-[:AUTOMATED_BY]->(a)
+      RETURN
+        t.name AS technology,
+        collect(DISTINCT a.name) AS automations,
+        collect(DISTINCT p.name) AS processes
+      ORDER BY t.name
+    `;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * 5. SYSTEM QUESTIONS
+   * ---------------------------------------------------------
+   */
+
+  else if (
+    normalizedQuestion.includes("system") ||
+    normalizedQuestion.includes("systems")
+  ) {
+    responseType = "systems";
+
+    query = `
+      MATCH (a:Automation)-[:USES_SYSTEM]->(s:System)
+      OPTIONAL MATCH (p:Process)-[:AUTOMATED_BY]->(a)
+      RETURN
+        s.name AS system,
+        collect(DISTINCT a.name) AS automations,
+        collect(DISTINCT p.name) AS processes
+      ORDER BY s.name
+    `;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * 6. DEPARTMENT QUESTIONS
+   * ---------------------------------------------------------
+   */
+
+  else if (
+    normalizedQuestion.includes("department") ||
+    normalizedQuestion.includes("departments")
+  ) {
+    responseType = "departments";
+
+    query = `
+      MATCH (d:Department)
+      OPTIONAL MATCH (d)-[:CONTAINS]->(p:Process)
+      OPTIONAL MATCH (d)-[:OWNS]->(a:Automation)
+      RETURN
+        d.name AS department,
+        collect(DISTINCT p.name) AS processes,
+        collect(DISTINCT a.name) AS automations
+      ORDER BY d.name
+    `;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * 7. GENERAL GRAPH OVERVIEW
+   * ---------------------------------------------------------
+   */
+
+  else {
+    responseType = "overview";
+
+    query = `
+      MATCH (n)
+      WITH labels(n)[0] AS nodeType, count(n) AS count
+      RETURN
+        nodeType,
+        count
+      ORDER BY nodeType
+    `;
+  }
+
+  const result = await driver.executeQuery(query);
+
+  const data = result.records.map(
+    (record) => record.toObject() as Record<string, unknown>
+  );
+
+  return {
+    question,
+    responseType,
+    data,
+    source: "Neo4j Aura",
+  };
+}

@@ -7,7 +7,7 @@ const navigation = [
   {
     name: "Overview",
     icon: "⌂",
-    href: "/",
+    href: "/overview",
   },
   {
     name: "Process Intelligence",
@@ -41,9 +41,9 @@ export default function Sidebar() {
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-slate-800 bg-[#070b18]">
-      {/* Logo */}
+      {/* Brand */}
       <div className="flex h-20 items-center border-b border-slate-800 px-6">
-        <Link href="/" className="block">
+        <Link href="/overview" className="block">
           <div className="text-lg font-bold tracking-tight text-white">
             AI Operations Lab
           </div>
@@ -64,7 +64,7 @@ export default function Sidebar() {
           {navigation.map((item) => {
             const isActive =
               pathname === item.href ||
-              (item.href !== "/" && pathname.startsWith(item.href));
+              pathname.startsWith(`${item.href}/`);
 
             return (
               <Link
@@ -93,16 +93,31 @@ export default function Sidebar() {
         </div>
       </nav>
 
-      {/* Bottom section */}
+      {/* Bottom Section */}
       <div className="border-t border-slate-800 p-3">
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition hover:bg-slate-800/60 hover:text-white">
-          <span className="flex h-7 w-7 items-center justify-center text-slate-500">
+        {/* Settings */}
+        <Link
+          href="/settings"
+          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
+            pathname === "/settings" || pathname.startsWith("/settings/")
+              ? "bg-cyan-500/10 text-cyan-400"
+              : "text-slate-400 hover:bg-slate-800/60 hover:text-white"
+          }`}
+        >
+          <span
+            className={`flex h-7 w-7 items-center justify-center ${
+              pathname === "/settings" || pathname.startsWith("/settings/")
+                ? "text-cyan-400"
+                : "text-slate-500"
+            }`}
+          >
             ⚙
           </span>
 
-          Settings
-        </button>
+          <span>Settings</span>
+        </Link>
 
+        {/* System Status */}
         <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
