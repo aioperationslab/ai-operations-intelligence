@@ -67,7 +67,9 @@ export async function POST(request: Request) {
       answer: aiResponse.answer,
       provider: aiResponse.provider,
       configuredProvider,
-      data: context.data,
+      graphData: context.graphData,
+      documentData: context.documentData,
+      sources: context.sources,
       source: context.source,
     });
   } catch (error) {

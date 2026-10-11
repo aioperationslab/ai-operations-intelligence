@@ -7,7 +7,13 @@ import type {
 type GraphContext = {
   question?: string;
   responseType?: string;
-  data?: Record<string, unknown>[];
+  graphData?: Record<string, unknown>[];
+  documentData?: Record<string, unknown>[];
+  sources?: {
+    type: "graph" | "document";
+    name: string;
+    description?: string;
+  }[];
   source?: string;
 };
 
@@ -23,7 +29,7 @@ export class RuleBasedProvider implements AIProvider {
 
     /*
      * ---------------------------------------------------------
-     * PARSE RETRIEVED GRAPH CONTEXT
+     * PARSE RETRIEVED AI CONTEXT
      * ---------------------------------------------------------
      */
 
@@ -35,11 +41,28 @@ export class RuleBasedProvider implements AIProvider {
       }
     }
 
-    const data = Array.isArray(context.data)
-      ? context.data
+    /*
+     * ---------------------------------------------------------
+     * GRAPH + DOCUMENT CONTEXT
+     * ---------------------------------------------------------
+     *
+     * graphData contains the live Neo4j results.
+     *
+     * documentData is reserved for future RAG retrieval.
+     * It is currently empty.
+     * ---------------------------------------------------------
+     */
+
+    const graphData = Array.isArray(context.graphData)
+      ? context.graphData
       : [];
 
-    const responseType = context.responseType ?? "overview";
+    const documentData = Array.isArray(context.documentData)
+      ? context.documentData
+      : [];
+
+    const responseType =
+      context.responseType ?? "overview";
 
     /*
      * ---------------------------------------------------------
@@ -57,7 +80,7 @@ export class RuleBasedProvider implements AIProvider {
      */
 
     if (responseType === "processes") {
-      const processNames = data
+      const processNames = graphData
         .map((item) => item.process)
         .filter(
           (value): value is string =>
@@ -81,14 +104,14 @@ export class RuleBasedProvider implements AIProvider {
      */
 
     else if (responseType === "automations") {
-      const automationNames = data
+      const automationNames = graphData
         .map((item) => item.automation)
         .filter(
           (value): value is string =>
             typeof value === "string"
         );
 
-      const confidenceValues = data
+      const confidenceValues = graphData
         .map((item) => item.confidence)
         .filter(
           (value): value is number =>
@@ -127,7 +150,7 @@ export class RuleBasedProvider implements AIProvider {
      */
 
     else if (responseType === "dependencies") {
-      const dependencies = data
+      const dependencies = graphData
         .map((item) => {
           const process = item.process;
           const dependsOn = item.dependsOn;
@@ -164,7 +187,7 @@ export class RuleBasedProvider implements AIProvider {
      */
 
     else if (responseType === "technologies") {
-      const technologies = data
+      const technologies = graphData
         .map((item) => item.technology)
         .filter(
           (value): value is string =>
@@ -192,7 +215,7 @@ export class RuleBasedProvider implements AIProvider {
      */
 
     else if (responseType === "systems") {
-      const systems = data
+      const systems = graphData
         .map((item) => item.system)
         .filter(
           (value): value is string =>
@@ -218,7 +241,7 @@ export class RuleBasedProvider implements AIProvider {
      */
 
     else if (responseType === "departments") {
-      const departments = data
+      const departments = graphData
         .map((item) => item.department)
         .filter(
           (value): value is string =>
@@ -246,14 +269,17 @@ export class RuleBasedProvider implements AIProvider {
      */
 
     else if (responseType === "overview") {
-      const totalNodes = data.reduce((total, item) => {
-        const count = item.count;
+      const totalNodes = graphData.reduce(
+        (total, item) => {
+          const count = item.count;
 
-        return (
-          total +
-          (typeof count === "number" ? count : 0)
-        );
-      }, 0);
+          return (
+            total +
+            (typeof count === "number" ? count : 0)
+          );
+        },
+        0
+      );
 
       if (totalNodes > 0) {
         answer =
@@ -277,6 +303,22 @@ export class RuleBasedProvider implements AIProvider {
     ) {
       answer =
         "The AI Operations Lab platform uses Neo4j Aura as the live operational knowledge graph.";
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * FUTURE DOCUMENT CONTEXT
+     * ---------------------------------------------------------
+     *
+     * This does not affect the current rule-based answers.
+     * It simply confirms that the provider can receive
+     * document context once RAG is implemented.
+     * ---------------------------------------------------------
+     */
+
+    if (documentData.length > 0) {
+      answer +=
+        ` Additional document context was retrieved from ${documentData.length} document records.`;
     }
 
     return {

@@ -1,10 +1,34 @@
 import neo4j from "neo4j-driver";
 import driver from "@/app/lib/neo4j";
 
+export type AIContextSource = {
+  type: "graph" | "document";
+  name: string;
+  description?: string;
+};
+
 export type AIContextResult = {
   question: string;
   responseType: string;
-  data: Record<string, unknown>[];
+
+  /*
+   * Live operational knowledge retrieved from Neo4j.
+   */
+  graphData: Record<string, unknown>[];
+
+  /*
+   * Reserved for future RAG document retrieval.
+   *
+   * Currently empty because document retrieval has not
+   * been implemented yet.
+   */
+  documentData: Record<string, unknown>[];
+
+  /*
+   * Sources used to build the context.
+   */
+  sources: AIContextSource[];
+
   source: "Neo4j Aura";
 };
 
@@ -41,6 +65,25 @@ function normalizeNeo4jValue(value: unknown): unknown {
 /*
  * ---------------------------------------------------------
  * BUILD AI CONTEXT
+ * ---------------------------------------------------------
+ *
+ * Current architecture:
+ *
+ * Neo4j
+ *   ↓
+ * Graph Context
+ *   ↓
+ * AI Provider
+ *
+ * Future architecture:
+ *
+ * Neo4j + Documents
+ *   ↓
+ * Retrieval / RAG
+ *   ↓
+ * Unified AI Context
+ *   ↓
+ * AI Provider
  * ---------------------------------------------------------
  */
 
@@ -239,7 +282,7 @@ export async function buildAIContext(
    * ---------------------------------------------------------
    */
 
-  const data = result.records.map((record) => {
+  const graphData = result.records.map((record) => {
     const rawData = record.toObject();
 
     return normalizeNeo4jValue(
@@ -249,14 +292,43 @@ export async function buildAIContext(
 
   /*
    * ---------------------------------------------------------
-   * RETURN AI CONTEXT
+   * DOCUMENT CONTEXT
+   * ---------------------------------------------------------
+   *
+   * RAG is intentionally not active yet.
+   * This array will later contain retrieved document chunks.
+   * ---------------------------------------------------------
+   */
+
+  const documentData: Record<string, unknown>[] = [];
+
+  /*
+   * ---------------------------------------------------------
+   * CONTEXT SOURCES
+   * ---------------------------------------------------------
+   */
+
+  const sources: AIContextSource[] = [
+    {
+      type: "graph",
+      name: "Neo4j Aura",
+      description:
+        "Live operational knowledge graph containing processes, automations, systems, technologies and relationships.",
+    },
+  ];
+
+  /*
+   * ---------------------------------------------------------
+   * RETURN UNIFIED AI CONTEXT
    * ---------------------------------------------------------
    */
 
   return {
     question,
     responseType,
-    data,
+    graphData,
+    documentData,
+    sources,
     source: "Neo4j Aura",
   };
 }
