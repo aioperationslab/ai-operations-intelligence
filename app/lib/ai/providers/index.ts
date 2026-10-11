@@ -3,12 +3,13 @@ import type {
   AIProviderName,
 } from "./types";
 
+import { DEFAULT_AI_PROVIDER } from "../config";
 import { RuleBasedProvider } from "./rule-based";
 
 const ruleBasedProvider = new RuleBasedProvider();
 
 export function getAIProvider(
-  provider: AIProviderName = "rule-based"
+  provider: AIProviderName = DEFAULT_AI_PROVIDER
 ): AIProvider {
   switch (provider) {
     case "rule-based":
