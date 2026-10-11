@@ -4,9 +4,13 @@ import type {
 } from "./types";
 
 import { DEFAULT_AI_PROVIDER } from "../config";
+import { AnthropicProvider } from "./anthropic";
+import { OpenAIProvider } from "./openai";
 import { RuleBasedProvider } from "./rule-based";
 
 const ruleBasedProvider = new RuleBasedProvider();
+const openAIProvider = new OpenAIProvider();
+const anthropicProvider = new AnthropicProvider();
 
 export function getAIProvider(
   provider: AIProviderName = DEFAULT_AI_PROVIDER
@@ -16,14 +20,10 @@ export function getAIProvider(
       return ruleBasedProvider;
 
     case "openai":
-      throw new Error(
-        "OpenAI provider is not enabled yet."
-      );
+      return openAIProvider;
 
     case "anthropic":
-      throw new Error(
-        "Anthropic provider is not enabled yet."
-      );
+      return anthropicProvider;
 
     default:
       return ruleBasedProvider;
