@@ -1,3 +1,4 @@
+import neo4j from "neo4j-driver";
 import driver from "@/app/lib/neo4j";
 
 export type AIContextResult = {
@@ -6,6 +7,48 @@ export type AIContextResult = {
   data: Record<string, unknown>[];
   source: "Neo4j Aura";
 };
+
+/*
+ * ---------------------------------------------------------
+ * NORMALIZE NEO4J VALUES
+ * ---------------------------------------------------------
+ *
+ * Neo4j returns integer properties as Neo4j Integer objects.
+ * These need to be converted into normal JavaScript numbers
+ * before being returned to the frontend or passed to an AI
+ * provider.
+ * ---------------------------------------------------------
+ */
+
+function normalizeNeo4jValue(value: unknown): unknown {
+  if (neo4j.isInt(value)) {
+    return value.toNumber();
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(normalizeNeo4jValue);
+  }
+
+  if (value !== null && typeof value === "object") {
+    const normalized: Record<string, unknown> = {};
+
+    for (const [key, nestedValue] of Object.entries(
+      value as Record<string, unknown>
+    )) {
+      normalized[key] = normalizeNeo4jValue(nestedValue);
+    }
+
+    return normalized;
+  }
+
+  return value;
+}
+
+/*
+ * ---------------------------------------------------------
+ * BUILD AI CONTEXT
+ * ---------------------------------------------------------
+ */
 
 export async function buildAIContext(
   question: string
@@ -183,11 +226,33 @@ export async function buildAIContext(
     `;
   }
 
+  /*
+   * ---------------------------------------------------------
+   * 8. QUERY NEO4J
+   * ---------------------------------------------------------
+   */
+
   const result = await driver.executeQuery(query);
 
-  const data = result.records.map(
-    (record) => record.toObject() as Record<string, unknown>
-  );
+  /*
+   * ---------------------------------------------------------
+   * 9. NORMALIZE NEO4J DATA
+   * ---------------------------------------------------------
+   */
+
+  const data = result.records.map((record) => {
+    const rawData = record.toObject();
+
+    return normalizeNeo4jValue(
+      rawData
+    ) as Record<string, unknown>;
+  });
+
+  /*
+   * ---------------------------------------------------------
+   * 10. RETURN AI CONTEXT
+   * ---------------------------------------------------------
+   */
 
   return {
     question,
