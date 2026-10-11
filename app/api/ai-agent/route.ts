@@ -31,14 +31,17 @@ export async function POST(request: Request) {
      * 2. SELECT CONFIGURED AI PROVIDER
      * ---------------------------------------------------------
      *
-     * Currently:
+     * The current environment uses:
+     *
      * AI_PROVIDER=rule-based
      *
      * OpenAI and Anthropic remain disabled.
      * ---------------------------------------------------------
      */
 
-    const provider = getAIProvider(DEFAULT_AI_PROVIDER);
+    const configuredProvider = DEFAULT_AI_PROVIDER;
+
+    const provider = getAIProvider(configuredProvider);
 
     /*
      * ---------------------------------------------------------
@@ -63,6 +66,7 @@ export async function POST(request: Request) {
       responseType: context.responseType,
       answer: aiResponse.answer,
       provider: aiResponse.provider,
+      configuredProvider,
       data: context.data,
       source: context.source,
     });
