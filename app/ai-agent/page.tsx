@@ -3,13 +3,38 @@
 import { FormEvent, useState } from "react";
 import AppShell from "@/app/components/AppShell";
 
+type AgentResultItem = {
+  type: "graph" | "document";
+  data: Record<string, unknown>;
+};
+
 type AgentResult = {
   success: boolean;
   question?: string;
   responseType?: string;
   answer?: string;
-  data?: Record<string, unknown>[];
+
+  results?: AgentResultItem[];
+  resultCount?: number;
+
+  graphData?: Record<string, unknown>[];
+  documentData?: Record<string, unknown>[];
+
   source?: string;
+  sources?: {
+    type: string;
+    name: string;
+    description?: string;
+  }[];
+
+  confidence?: "high" | "medium" | "low";
+
+  metadata?: {
+    graphRecordCount?: number;
+    documentCount?: number;
+    routingIntent?: string;
+  };
+
   message?: string;
 };
 
@@ -171,7 +196,9 @@ export default function AIAgentPage() {
 
                 <input
                   value={question}
-                  onChange={(event) => setQuestion(event.target.value)}
+                  onChange={(event) =>
+                    setQuestion(event.target.value)
+                  }
                   placeholder="Ask a question about your operations..."
                   className="h-12 flex-1 bg-transparent pr-4 text-sm text-white outline-none placeholder:text-slate-600"
                 />
@@ -241,7 +268,9 @@ export default function AIAgentPage() {
           <div className="rounded-xl border border-slate-800 bg-[#0b1224] p-8">
             <div className="flex items-center gap-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/5">
-                <span className="animate-pulse text-violet-300">✦</span>
+                <span className="animate-pulse text-violet-300">
+                  ✦
+                </span>
               </div>
 
               <div>
@@ -301,9 +330,11 @@ export default function AIAgentPage() {
               </div>
             </section>
 
-            {/* Knowledge Graph Results */}
+            {/* =====================================================
+                KNOWLEDGE GRAPH RESULTS
+            ===================================================== */}
 
-            {result.data && result.data.length > 0 && (
+            {result.graphData && result.graphData.length > 0 && (
               <section className="rounded-xl border border-slate-800 bg-[#0b1224] p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div>
@@ -312,8 +343,9 @@ export default function AIAgentPage() {
                     </div>
 
                     <div className="mt-1 text-xs text-slate-500">
-                      {result.data.length} result
-                      {result.data.length !== 1 ? "s" : ""} returned from Neo4j
+                      {result.graphData.length} result
+                      {result.graphData.length !== 1 ? "s" : ""} returned
+                      from Neo4j
                     </div>
                   </div>
 
@@ -325,7 +357,7 @@ export default function AIAgentPage() {
                 </div>
 
                 <div className="mt-6 space-y-3">
-                  {result.data.map((item, index) => {
+                  {result.graphData.map((item, index) => {
                     const fields = getDisplayFields(item);
 
                     return (
@@ -353,7 +385,63 @@ export default function AIAgentPage() {
               </section>
             )}
 
-            {/* Query Metadata */}
+            {/* =====================================================
+                DOCUMENT EVIDENCE
+            ===================================================== */}
+
+            {result.documentData && result.documentData.length > 0 && (
+              <section className="rounded-xl border border-slate-800 bg-[#0b1224] p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-semibold text-white">
+                      Retrieved Document Context
+                    </div>
+
+                    <div className="mt-1 text-xs text-slate-500">
+                      {result.documentData.length} relevant document
+                      {result.documentData.length !== 1 ? "s" : ""} retrieved
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-slate-800 px-3 py-2">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-slate-500">
+                      Evidence
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  {result.documentData.map((item, index) => {
+                    const fields = getDisplayFields(item);
+
+                    return (
+                      <div
+                        key={index}
+                        className="rounded-xl border border-slate-800 bg-slate-950/40 p-4"
+                      >
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {fields.map(([key, value]) => (
+                            <div key={key}>
+                              <div className="mb-1 text-[9px] font-semibold uppercase tracking-[0.15em] text-slate-600">
+                                {formatLabel(key)}
+                              </div>
+
+                              <div className="whitespace-pre-wrap text-xs leading-6 text-slate-300">
+                                {renderValue(value)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* =====================================================
+                QUERY METADATA
+            ===================================================== */}
 
             <section className="grid gap-4 md:grid-cols-3">
               <MetricCard
@@ -363,7 +451,7 @@ export default function AIAgentPage() {
 
               <MetricCard
                 label="Results"
-                value={String(result.data?.length || 0)}
+                value={String(result.resultCount ?? 0)}
               />
 
               <MetricCard
@@ -375,7 +463,9 @@ export default function AIAgentPage() {
             {/* Grounding Notice */}
 
             <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-4 text-[10px] leading-5 text-slate-600">
-              <span className="font-medium text-slate-500">Grounding:</span>{" "}
+              <span className="font-medium text-slate-500">
+                Grounding:
+              </span>{" "}
               this response is based on data retrieved from the live Neo4j
               knowledge graph. Future LLM providers will use the same graph
               context rather than replacing Neo4j as the operational source of
@@ -403,7 +493,7 @@ export default function AIAgentPage() {
             />
 
             <CapabilityCard
-              icon="◎"
+              icon="◉"
               title="Dependency Analysis"
               description="Understand relationships between processes, systems and operational dependencies."
             />
@@ -494,9 +584,13 @@ function StatusCard({
         {label}
       </div>
 
-      <div className="mt-3 text-sm font-medium text-white">{value}</div>
+      <div className="mt-3 text-sm font-medium text-white">
+        {value}
+      </div>
 
-      <div className="mt-1 text-[10px] text-slate-600">{description}</div>
+      <div className="mt-1 text-[10px] text-slate-600">
+        {description}
+      </div>
     </div>
   );
 }
@@ -536,9 +630,13 @@ function CapabilityCard({
         {icon}
       </div>
 
-      <h3 className="mt-5 text-sm font-semibold text-white">{title}</h3>
+      <h3 className="mt-5 text-sm font-semibold text-white">
+        {title}
+      </h3>
 
-      <p className="mt-2 text-xs leading-6 text-slate-500">{description}</p>
+      <p className="mt-2 text-xs leading-6 text-slate-500">
+        {description}
+      </p>
     </div>
   );
 }

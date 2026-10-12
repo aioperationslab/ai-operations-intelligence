@@ -29,7 +29,128 @@ export class RuleBasedProvider
     let answer =
       "I analyzed the available operational knowledge graph data.";
 
-    if (responseType === "processes") {
+    if (responseType === "opportunities") {
+      const opportunities = graphData
+        .filter(
+          (item) =>
+            typeof item.process === "string" &&
+            typeof item.opportunityScore === "number"
+        )
+        .map((item) => ({
+          process: String(item.process),
+          score: Number(item.opportunityScore),
+          priority:
+            typeof item.priority === "string"
+              ? item.priority
+              : "Unknown",
+          maturity:
+            typeof item.maturity === "string"
+              ? item.maturity
+              : "Unknown",
+          confidence:
+            typeof item.confidence === "number"
+              ? item.confidence
+              : null,
+          systemCount:
+            typeof item.systemCount === "number"
+              ? item.systemCount
+              : null,
+          dependencyCount:
+            typeof item.dependencyCount === "number"
+              ? item.dependencyCount
+              : null,
+        }))
+        .sort(
+          (a, b) =>
+            b.score - a.score
+        );
+
+      if (opportunities.length > 0) {
+        const topOpportunity =
+          opportunities[0];
+
+        answer =
+          `The strongest next automation opportunity is ${topOpportunity.process}, ` +
+          `with an opportunity score of ${topOpportunity.score} (${topOpportunity.priority} priority).`;
+
+        const supportingDetails: string[] = [];
+
+        if (
+          topOpportunity.maturity !==
+          "Unknown"
+        ) {
+          supportingDetails.push(
+            `It is currently in ${topOpportunity.maturity} maturity`
+          );
+        }
+
+        if (
+          topOpportunity.confidence !==
+          null
+        ) {
+          supportingDetails.push(
+            `with ${topOpportunity.confidence}% automation confidence`
+          );
+        }
+
+        if (
+          topOpportunity.systemCount !==
+          null
+        ) {
+          supportingDetails.push(
+            `across ${topOpportunity.systemCount} system${
+              topOpportunity.systemCount ===
+              1
+                ? ""
+                : "s"
+            }`
+          );
+        }
+
+        if (
+          topOpportunity.dependencyCount !==
+          null
+        ) {
+          supportingDetails.push(
+            `with ${topOpportunity.dependencyCount} process dependenc${
+              topOpportunity.dependencyCount ===
+              1
+                ? "y"
+                : "ies"
+            }`
+          );
+        }
+
+        if (
+          supportingDetails.length > 0
+        ) {
+          answer +=
+            ` ${supportingDetails.join(", ")}.`;
+        }
+
+        if (
+          opportunities.length > 1
+        ) {
+          const nextOpportunities =
+            opportunities
+              .slice(1, 4)
+              .map(
+                (item) =>
+                  `${item.process} (${item.score})`
+              );
+
+          answer +=
+            ` Other leading opportunities include ${nextOpportunities.join(
+              ", "
+            )}.`;
+        }
+      } else {
+        answer =
+          "No automation opportunity records were found in the knowledge graph.";
+      }
+    } else if (
+      responseType === "processes"
+    ) {
       const processNames = graphData
         .map((item) => item.process)
         .filter(
@@ -79,7 +200,9 @@ export class RuleBasedProvider
           `The knowledge graph contains ${automationNames.length} automations: ` +
           `${automationNames.join(", ")}.`;
 
-        if (averageConfidence !== null) {
+        if (
+          averageConfidence !== null
+        ) {
           answer +=
             ` The average automation confidence in the retrieved data is ${averageConfidence}%.`;
         }
@@ -132,7 +255,9 @@ export class RuleBasedProvider
         ...new Set(technologies),
       ];
 
-      if (uniqueTechnologies.length > 0) {
+      if (
+        uniqueTechnologies.length > 0
+      ) {
         answer =
           `The knowledge graph contains ${uniqueTechnologies.length} technologies connected to the retrieved automation data: ` +
           `${uniqueTechnologies.join(", ")}.`;
@@ -176,7 +301,9 @@ export class RuleBasedProvider
         ...new Set(departments),
       ];
 
-      if (uniqueDepartments.length > 0) {
+      if (
+        uniqueDepartments.length > 0
+      ) {
         answer =
           `The knowledge graph contains ${uniqueDepartments.length} departments represented in the retrieved data: ` +
           `${uniqueDepartments.join(", ")}.`;
@@ -245,11 +372,13 @@ export class RuleBasedProvider
 
     if (
       documentData.length > 0 &&
-      responseType !== "overview"
+      responseType !== "overview" &&
+      responseType !== "opportunities"
     ) {
       answer +=
         ` Additional document context was retrieved from ${documentData.length} document record${
-          documentData.length === 1
+          documentData.length ===
+          1
             ? ""
             : "s"
         }.`;
