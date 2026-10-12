@@ -6,21 +6,24 @@ const contactOptions = [
     title: "AI & Automation",
     description:
       "Explore AI agents, intelligent automation and operational intelligence opportunities.",
-    action: "Discuss an opportunity",
+    link: "mailto:zahra.elgoumri@aioperationslab.com",
+    linkText: "Discuss an opportunity →",
   },
   {
     number: "02",
     title: "Technology & Partnerships",
     description:
       "Connect around AI platforms, knowledge graphs, retrieval, automation and emerging enterprise technologies.",
-    action: "Explore collaboration",
+    link: "mailto:zahra.elgoumri@aioperationslab.com",
+    linkText: "Explore collaboration →",
   },
   {
     number: "03",
     title: "Product & Innovation",
     description:
       "Discuss ideas around AI-native products, process intelligence and the future of enterprise operations.",
-    action: "Start a conversation",
+    link: "mailto:zahra.elgoumri@aioperationslab.com",
+    linkText: "Start a conversation →",
   },
 ];
 
@@ -42,10 +45,17 @@ export default function ContactPage() {
 
           <nav className="hidden items-center gap-8 md:flex">
             <Link
-              href="/#capabilities"
+              href="/about"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              Capabilities
+              About
+            </Link>
+
+            <Link
+              href="/solutions"
+              className="text-sm text-slate-400 transition hover:text-white"
+            >
+              Solutions
             </Link>
 
             <Link
@@ -53,6 +63,13 @@ export default function ContactPage() {
               className="text-sm text-slate-400 transition hover:text-white"
             >
               Technology
+            </Link>
+
+            <Link
+              href="/contact"
+              className="text-sm text-cyan-400 transition hover:text-cyan-300"
+            >
+              Contact
             </Link>
 
             <Link
@@ -65,11 +82,22 @@ export default function ContactPage() {
         </div>
       </header>
 
+      {/* Back to Home */}
+      <div className="mx-auto max-w-7xl px-6 pt-6 lg:px-8">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-cyan-400"
+        >
+          <span>←</span>
+          <span>Back to Home</span>
+        </Link>
+      </div>
+
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute left-1/2 top-0 h-[500px] w-[900px] -translate-x-1/2 rounded-full bg-cyan-500/5 blur-3xl" />
 
-        <div className="relative mx-auto max-w-7xl px-6 pb-20 pt-24 lg:px-8 lg:pb-28 lg:pt-28">
+        <div className="relative mx-auto max-w-7xl px-6 pb-24 pt-16 lg:px-8 lg:pb-28 lg:pt-20">
           <div className="max-w-4xl">
             <div className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-400">
               Contact AI Operations Lab
@@ -91,10 +119,10 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Contact options */}
+      {/* Conversation Options */}
       <section className="border-y border-slate-800/80 bg-[#07111f]">
         <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-          <div className="max-w-2xl">
+          <div className="max-w-3xl">
             <div className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-400">
               Start a conversation
             </div>
@@ -103,13 +131,13 @@ export default function ContactPage() {
               Explore what we can build together.
             </h2>
 
-            <p className="mt-4 text-slate-400">
+            <p className="mt-5 max-w-2xl leading-7 text-slate-400">
               AI Operations Lab focuses on practical applications of AI,
               automation and operational intelligence.
             </p>
           </div>
 
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
+          <div className="mt-12 grid gap-4 md:grid-cols-3">
             {contactOptions.map((option) => (
               <div
                 key={option.number}
@@ -120,10 +148,12 @@ export default function ContactPage() {
                     {option.number}
                   </span>
 
-                  <span className="text-slate-600">✦</span>
+                  <span className="text-slate-600">
+                    ✦
+                  </span>
                 </div>
 
-                <h3 className="mt-6 text-lg font-semibold">
+                <h3 className="mt-7 text-lg font-semibold">
                   {option.title}
                 </h3>
 
@@ -131,16 +161,19 @@ export default function ContactPage() {
                   {option.description}
                 </p>
 
-                <div className="mt-6 text-sm font-medium text-cyan-400">
-                  {option.action} →
-                </div>
+                <a
+                  href={option.link}
+                  className="mt-6 inline-flex text-sm font-medium text-cyan-400 transition hover:text-cyan-300"
+                >
+                  {option.linkText}
+                </a>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Email */}
+      {/* Contact Details */}
       <section className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
           <div>
@@ -152,30 +185,34 @@ export default function ContactPage() {
               Have an idea, challenge or opportunity?
             </h2>
 
-            <p className="mt-5 max-w-xl leading-7 text-slate-400">
+            <p className="mt-5 max-w-xl text-base leading-7 text-slate-400">
               Send a message and describe what you are working on. The best
               conversations start with a concrete problem worth solving.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-[#08111f] p-8">
-            <div className="text-xs uppercase tracking-[0.2em] text-slate-500">
+          <div className="rounded-xl border border-slate-800 bg-[#08111f] p-7">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
               Email
             </div>
 
             <a
               href="mailto:zahra.elgoumri@aioperationslab.com"
-              className="mt-4 block text-xl font-medium text-cyan-400 transition hover:text-cyan-300 sm:text-2xl"
+              className="mt-4 block text-base font-medium text-cyan-400 transition hover:text-cyan-300"
             >
               zahra.elgoumri@aioperationslab.com
             </a>
 
-            <p className="mt-4 text-sm leading-6 text-slate-500">
-              AI Operations Lab
-              <br />
-              Building intelligent AI agents &amp; automation solutions for
-              enterprise operations.
-            </p>
+            <div className="mt-6 border-t border-slate-800 pt-5">
+              <div className="text-sm font-medium text-slate-300">
+                AI Operations Lab
+              </div>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Building intelligent AI agents & automation solutions for
+                enterprise operations.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -209,10 +246,12 @@ export default function ContactPage() {
       {/* Footer */}
       <footer className="border-t border-slate-800">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-8">
-          <div>© 2026 AI Operations Lab</div>
+          <div>
+            © 2026 AI Operations Lab
+          </div>
 
           <div>
-            Building intelligent AI agents &amp; automation solutions for
+            Building intelligent AI agents & automation solutions for
             enterprise operations.
           </div>
         </div>
