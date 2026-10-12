@@ -41,9 +41,9 @@ export default function Sidebar() {
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-slate-800 bg-[#070b18]">
-      {/* Brand */}
+      {/* Platform Header */}
       <div className="flex h-20 items-center border-b border-slate-800 px-6">
-        <Link href="/overview" className="block">
+        <Link href="/" className="block">
           <div className="text-lg font-bold tracking-tight text-white">
             AI Operations Lab
           </div>
@@ -54,7 +54,7 @@ export default function Sidebar() {
         </Link>
       </div>
 
-      {/* Navigation */}
+      {/* Main Navigation */}
       <nav className="flex-1 px-3 py-6">
         <div className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
           Platform
@@ -95,18 +95,32 @@ export default function Sidebar() {
 
       {/* Bottom Section */}
       <div className="border-t border-slate-800 p-3">
+        {/* Back to Website */}
+        <Link
+          href="/"
+          className="mb-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition hover:bg-slate-800/60 hover:text-white"
+        >
+          <span className="flex h-7 w-7 items-center justify-center text-slate-500">
+            ←
+          </span>
+
+          <span>Back to website</span>
+        </Link>
+
         {/* Settings */}
         <Link
           href="/settings"
           className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
-            pathname === "/settings" || pathname.startsWith("/settings/")
+            pathname === "/settings" ||
+            pathname.startsWith("/settings/")
               ? "bg-cyan-500/10 text-cyan-400"
               : "text-slate-400 hover:bg-slate-800/60 hover:text-white"
           }`}
         >
           <span
             className={`flex h-7 w-7 items-center justify-center ${
-              pathname === "/settings" || pathname.startsWith("/settings/")
+              pathname === "/settings" ||
+              pathname.startsWith("/settings/")
                 ? "text-cyan-400"
                 : "text-slate-500"
             }`}

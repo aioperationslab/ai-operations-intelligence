@@ -37,7 +37,6 @@ export default function AboutPage() {
             <div className="text-lg font-bold tracking-tight">
               AI Operations Lab
             </div>
-
             <div className="mt-0.5 text-xs text-cyan-400">
               Intelligence Platform
             </div>
@@ -68,8 +67,19 @@ export default function AboutPage() {
         </div>
       </header>
 
+      {/* Back to Home */}
+      <div className="mx-auto max-w-7xl px-6 pt-6 lg:px-8">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-cyan-400"
+        >
+          <span>←</span>
+          <span>Back to Home</span>
+        </Link>
+      </div>
+
       {/* Hero */}
-      <section className="mx-auto max-w-7xl px-6 pb-20 pt-24 lg:px-8 lg:pt-28">
+      <section className="mx-auto max-w-7xl px-6 pb-20 pt-16 lg:px-8 lg:pt-20">
         <div className="max-w-4xl">
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-400">
             About AI Operations Lab

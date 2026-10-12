@@ -51,20 +51,34 @@ export default function HomePage() {
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-8 md:flex">
-            <a
-              href="#capabilities"
+          <nav className="hidden items-center gap-7 md:flex">
+            <Link
+              href="/about"
               className="text-sm text-slate-400 transition hover:text-white"
             >
-              Capabilities
-            </a>
+              About
+            </Link>
 
-            <a
-              href="#technology"
+            <Link
+              href="/solutions"
+              className="text-sm text-slate-400 transition hover:text-white"
+            >
+              Solutions
+            </Link>
+
+            <Link
+              href="/technology"
               className="text-sm text-slate-400 transition hover:text-white"
             >
               Technology
-            </a>
+            </Link>
+
+            <Link
+              href="/contact"
+              className="text-sm text-slate-400 transition hover:text-white"
+            >
+              Contact
+            </Link>
 
             <Link
               href="/overview"
@@ -109,12 +123,13 @@ export default function HomePage() {
                 <span className="ml-2">→</span>
               </Link>
 
-              <a
-                href="#capabilities"
+              <Link
+                href="/solutions"
                 className="inline-flex items-center justify-center rounded-lg border border-slate-700 bg-slate-900/40 px-6 py-3 text-sm font-medium text-slate-200 transition hover:border-slate-600 hover:bg-slate-800/60"
               >
-                Explore capabilities
-              </a>
+                Explore solutions
+                <span className="ml-2">→</span>
+              </Link>
             </div>
           </div>
         </div>
@@ -232,6 +247,13 @@ export default function HomePage() {
                 AI reasoning, retrieval and automation to create a foundation
                 for intelligent enterprise operations.
               </p>
+
+              <Link
+                href="/technology"
+                className="mt-7 inline-flex items-center text-sm font-medium text-cyan-400 transition hover:text-cyan-300"
+              >
+                Explore the technology →
+              </Link>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -248,8 +270,57 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* About / Contact navigation */}
       <section className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
+        <div className="grid gap-5 md:grid-cols-2">
+          <Link
+            href="/about"
+            className="group rounded-xl border border-slate-800 bg-[#08111f] p-8 transition hover:border-cyan-500/30"
+          >
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-400">
+              About
+            </div>
+
+            <h2 className="mt-4 text-2xl font-semibold">
+              Discover AI Operations Lab.
+            </h2>
+
+            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">
+              Learn more about the vision, principles and technology approach
+              behind the platform.
+            </p>
+
+            <div className="mt-6 text-sm font-medium text-cyan-400 transition group-hover:text-cyan-300">
+              About AI Operations Lab →
+            </div>
+          </Link>
+
+          <Link
+            href="/contact"
+            className="group rounded-xl border border-slate-800 bg-[#08111f] p-8 transition hover:border-cyan-500/30"
+          >
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-400">
+              Contact
+            </div>
+
+            <h2 className="mt-4 text-2xl font-semibold">
+              Have an idea or opportunity?
+            </h2>
+
+            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">
+              Explore collaboration, AI automation opportunities, technology
+              partnerships or product ideas.
+            </p>
+
+            <div className="mt-6 text-sm font-medium text-cyan-400 transition group-hover:text-cyan-300">
+              Get in touch →
+            </div>
+          </Link>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="mx-auto max-w-7xl px-6 pb-24 lg:px-8">
         <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 px-8 py-14 text-center">
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-400">
             AI Operations Lab
@@ -277,9 +348,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-slate-800">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-8">
-          <div>
-            © 2026 AI Operations Lab
-          </div>
+          <div>© 2026 AI Operations Lab</div>
 
           <div>
             Building intelligent AI agents & automation solutions for
